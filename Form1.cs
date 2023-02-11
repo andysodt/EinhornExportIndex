@@ -33,11 +33,13 @@ namespace EinhornExportIndex
 
                 IEdmFolder5 Folder = vault.BrowseForFolder(0, "Select folder to traverse");
 
+                textBox1.AppendText("Root Folder " + Folder.Name + Environment.NewLine);
+
                 Workbook workbook = getWorkbook();
 
                 TraverseFolder(Folder, workbook);
 
-                MessageBox.Show("Done!");
+                textBox1.AppendText("Done" + Environment.NewLine);
 
 
             }
@@ -57,6 +59,7 @@ namespace EinhornExportIndex
             {
                 if (CurFolder.Name.EndsWith("-DRAWINGS"))
                 {
+                    textBox1.AppendText("Creating worksheet " + CurFolder.Name + Environment.NewLine);
                     AddWorksheet(workbook, CurFolder);
                 }
 
@@ -83,7 +86,9 @@ namespace EinhornExportIndex
 
         private Workbook getWorkbook()
         {
+
             String filename = "C:\\temp\\index.xlsx";
+
             Workbook workbook = null;
             if (System.IO.File.Exists(filename))
             {
@@ -148,6 +153,7 @@ namespace EinhornExportIndex
             while (!FilePos.IsNull)
             {
                 file = Folder.GetNextFile(FilePos);
+                textBox1.AppendText("Reading File " + file.Name + Environment.NewLine);
 
                 workbook.CurrentWorksheet.AddNextCell(file.ID);
                 history.AddFile(file.ID);
