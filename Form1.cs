@@ -12,6 +12,7 @@ namespace EinhornExportIndex
 {
     public partial class Form1 : Form
     {
+        String IndexFileLocation = "C:\\Einhorn PDM\\ENGINEERING DATA\\PDM INDEX OUTPUT\\PDM INDEX OUTPUT.xlsx";
         IEdmVault7 vault;
         public Form1()
         {
@@ -35,9 +36,12 @@ namespace EinhornExportIndex
 
                 textBox1.AppendText("Root Folder " + Folder.Name + Environment.NewLine);
 
+                LockIndexFile();
                 Workbook workbook = getWorkbook();
 
                 TraverseFolder(Folder, workbook);
+
+                UnlockIndexFile();
 
                 textBox1.AppendText("Done" + Environment.NewLine);
 
@@ -59,7 +63,7 @@ namespace EinhornExportIndex
             {
                 if (CurFolder.Name.EndsWith("-DRAWINGS"))
                 {
-                    textBox1.AppendText("Creating worksheet " + CurFolder.Name + Environment.NewLine);
+                    textBox1.AppendText("Updating worksheet " + CurFolder.Name + Environment.NewLine);
                     AddWorksheet(workbook, CurFolder);
                 }
 
@@ -84,21 +88,34 @@ namespace EinhornExportIndex
             }
         }
 
+        private void LockIndexFile()
+        {
+            IEdmFile5 file = default(IEdmFile5);
+            IEdmFolder5 folder = null;
+            file = vault.GetFileFromPath(IndexFileLocation, out folder);
+            file.LockFile(folder.ID, this.Handle.ToInt32());
+        }
+
+        private void UnlockIndexFile()
+        {
+            IEdmFile5 file = default(IEdmFile5);
+            IEdmFolder5 folder = null;
+            file = vault.GetFileFromPath(IndexFileLocation, out folder);
+            file.UnlockFile(folder.ID, "update");
+        }
+
         private Workbook getWorkbook()
         {
-
-            String filename = "C:\\temp\\index.xlsx";
-
             Workbook workbook = null;
-            if (System.IO.File.Exists(filename))
+            if (System.IO.File.Exists(IndexFileLocation))
             {
-                workbook = Workbook.Load(filename);
+                workbook = Workbook.Load(IndexFileLocation);
             }
             else
             {
                 workbook = new Workbook();
             }
-            workbook.Filename = filename;
+            workbook.Filename = IndexFileLocation;
 
             return workbook;
         }
