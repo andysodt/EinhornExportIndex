@@ -5,14 +5,10 @@
  * You find a copy of the license in project folder or on: http://opensource.org/licenses/MIT
  */
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using NanoXLSX.Exceptions;
+using NanoXLSX.Styles;
 using System.Text;
 using System.Text.RegularExpressions;
-using NanoXLSX.Exceptions;
-using NanoXLSX.LowLevel;
-using NanoXLSX.Styles;
 using FormatException = NanoXLSX.Exceptions.FormatException;
 
 namespace NanoXLSX
@@ -264,8 +260,9 @@ namespace NanoXLSX
         /// </summary>
         /// <remarks>Use <see cref="SelectedCellRanges"/> to get all defined ranges</remarks>
         [Obsolete("This method is a deprecated subset of the function SelectedCellRanges. SelectedCellRanges will get this function name in a future version. Therefore, the type will change")]
-        public Range? SelectedCells { 
-            get 
+        public Range? SelectedCells
+        {
+            get
             {
                 if (selectedCells.Count == 0)
                 {
@@ -289,7 +286,9 @@ namespace NanoXLSX
         /// <summary>
         /// Gets or sets the internal ID of the worksheet
         /// </summary>
-        public int SheetID { get => sheetID;
+        public int SheetID
+        {
+            get => sheetID;
             set
             {
                 if (value < 1)
@@ -297,7 +296,7 @@ namespace NanoXLSX
                     throw new FormatException("The ID " + value + " is invalid. Worksheet IDs must be >0");
                 }
                 sheetID = value;
-            } 
+            }
         }
 
         /// <summary>
@@ -1616,7 +1615,7 @@ namespace NanoXLSX
             string key = startAddress + ":" + endAddress;
             Range value = new Range(startAddress, endAddress);
             IReadOnlyList<Address> result = value.ResolveEnclosedAddresses();
-            foreach(KeyValuePair<string, Range>item in mergedCells)
+            foreach (KeyValuePair<string, Range> item in mergedCells)
             {
                 if (item.Value.ResolveEnclosedAddresses().Intersect(result).Any())
                 {
@@ -1696,27 +1695,27 @@ namespace NanoXLSX
         {
             Style mergeStyle = BasicStyles.MergeCellStyle;
             Cell cell;
-                foreach (KeyValuePair<string, Range> range in MergedCells)
+            foreach (KeyValuePair<string, Range> range in MergedCells)
+            {
+                int pos = 0;
+                List<Address> addresses = Cell.GetCellRange(range.Value.StartAddress, range.Value.EndAddress) as List<Address>;
+                foreach (Address address in addresses)
                 {
-                    int pos = 0;
-                    List<Address> addresses = Cell.GetCellRange(range.Value.StartAddress, range.Value.EndAddress) as List<Address>;
-                    foreach (Address address in addresses)
+                    if (!Cells.ContainsKey(address.GetAddress()))
                     {
-                        if (!Cells.ContainsKey(address.GetAddress()))
-                        {
-                            cell = new Cell();
-                            cell.DataType = Cell.CellType.EMPTY;
-                            cell.RowNumber = address.Row;
-                            cell.ColumnNumber = address.Column;
-                            AddCell(cell, cell.ColumnNumber, cell.RowNumber);
-                        }
-                        else
-                        {
-                            cell = Cells[address.GetAddress()];
-                        }
-                        if (pos != 0)
-                        {
-                            cell.DataType = Cell.CellType.EMPTY;
+                        cell = new Cell();
+                        cell.DataType = Cell.CellType.EMPTY;
+                        cell.RowNumber = address.Row;
+                        cell.ColumnNumber = address.Column;
+                        AddCell(cell, cell.ColumnNumber, cell.RowNumber);
+                    }
+                    else
+                    {
+                        cell = Cells[address.GetAddress()];
+                    }
+                    if (pos != 0)
+                    {
+                        cell.DataType = Cell.CellType.EMPTY;
                         if (cell.CellStyle == null)
                         {
                             cell.SetStyle(mergeStyle);
@@ -1729,9 +1728,9 @@ namespace NanoXLSX
                             cell.SetStyle(mixedMergeStyle);
                         }
                     }
-                        pos++;
-                    }
+                    pos++;
                 }
+            }
         }
 
         /// <summary>
@@ -1828,7 +1827,8 @@ namespace NanoXLSX
         /// <param name="value">Allowed action on the worksheet or cells</param>
         public void RemoveAllowedActionOnSheetProtection(SheetProtectionValue value)
         {
-            if (sheetProtectionValues.Contains(value)){
+            if (sheetProtectionValues.Contains(value))
+            {
                 sheetProtectionValues.Remove(value);
             }
         }
@@ -2303,7 +2303,7 @@ namespace NanoXLSX
         public Worksheet Copy()
         {
             Worksheet copy = new Worksheet();
-            foreach(KeyValuePair<string, Cell> cell in this.cells)
+            foreach (KeyValuePair<string, Cell> cell in this.cells)
             {
                 copy.AddCell(cell.Value.Copy(), cell.Key);
             }
@@ -2313,7 +2313,7 @@ namespace NanoXLSX
             {
                 copy.autoFilterRange = this.autoFilterRange.Value.Copy();
             }
-            foreach(KeyValuePair<int, Column> column in this.columns)
+            foreach (KeyValuePair<int, Column> column in this.columns)
             {
                 copy.columns.Add(column.Key, column.Value.Copy());
             }
@@ -2324,11 +2324,11 @@ namespace NanoXLSX
             copy.defaultRowHeight = this.defaultRowHeight;
             copy.freezeSplitPanes = this.freezeSplitPanes;
             copy.hidden = this.hidden;
-            foreach(KeyValuePair<int, bool> row in this.hiddenRows)
+            foreach (KeyValuePair<int, bool> row in this.hiddenRows)
             {
                 copy.hiddenRows.Add(row.Key, row.Value);
             }
-            foreach(KeyValuePair<string, Range> cell in this.mergedCells)
+            foreach (KeyValuePair<string, Range> cell in this.mergedCells)
             {
                 copy.mergedCells.Add(cell.Key, cell.Value.Copy());
             }
@@ -2342,20 +2342,20 @@ namespace NanoXLSX
             {
                 copy.paneSplitTopLeftCell = this.paneSplitTopLeftCell.Value.Copy();
             }
-            foreach(KeyValuePair<int,float> row in this.rowHeights)
+            foreach (KeyValuePair<int, float> row in this.rowHeights)
             {
                 copy.rowHeights.Add(row.Key, row.Value);
             }
             if (this.selectedCells.Count > 0)
             {
-                foreach(Range selectedCellRange in this.selectedCells)
+                foreach (Range selectedCellRange in this.selectedCells)
                 {
                     copy.AddSelectedCells(selectedCellRange.Copy());
                 }
             }
             copy.sheetProtectionPassword = this.sheetProtectionPassword;
             copy.sheetProtectionPasswordHash = this.sheetProtectionPasswordHash;
-            foreach(SheetProtectionValue value in this.sheetProtectionValues)
+            foreach (SheetProtectionValue value in this.sheetProtectionValues)
             {
                 copy.sheetProtectionValues.Add(value);
             }
@@ -2434,7 +2434,7 @@ namespace NanoXLSX
                 if (numberString.Length + prefix.Length > MAX_WORKSHEET_NAME_LENGTH)
                 {
                     int endIndex = prefix.Length - (numberString.Length + prefix.Length - MAX_WORKSHEET_NAME_LENGTH);
-                    prefix = prefix.Substring(0,endIndex);
+                    prefix = prefix.Substring(0, endIndex);
                 }
                 string newName = prefix + numberString;
                 if (!WorksheetExists(newName, workbook))

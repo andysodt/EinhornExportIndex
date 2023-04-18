@@ -5,7 +5,6 @@
  * You find a copy of the license in project folder or on: http://opensource.org/licenses/MIT
  */
 
-using System;
 using System.Runtime.CompilerServices;
 
 namespace NanoXLSX.Exceptions
@@ -27,7 +26,7 @@ namespace NanoXLSX.Exceptions
         /// <param name="message">Message of the exception</param>
         public WorksheetException(string message)
             : base(message)
-        {  }
+        { }
     }
 
     #region doc

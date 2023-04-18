@@ -5,15 +5,10 @@
  * You find a copy of the license in project folder or on: http://opensource.org/licenses/MIT
  */
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using NanoXLSX.Exceptions;
 using NanoXLSX.LowLevel;
 using NanoXLSX.Styles;
+using System.Runtime.CompilerServices;
 
 namespace NanoXLSX
 {
@@ -402,7 +397,7 @@ namespace NanoXLSX
         [Obsolete("This method has no direct impact on the generated file and is deprecated.")]
         public void RemoveStyle(Style style, bool onlyIfUnused)
         {
-            if (style == null) 
+            if (style == null)
             {
                 throw new StyleException("The style to remove is not defined");
             }

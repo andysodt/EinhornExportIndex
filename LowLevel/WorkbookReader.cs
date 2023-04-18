@@ -5,12 +5,7 @@
  * You find a copy of the license in project folder or on: http://opensource.org/licenses/MIT
  */
 
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
 using System.Xml;
-using NanoXLSX.Exceptions;
 using IOException = NanoXLSX.Exceptions.IOException;
 
 namespace NanoXLSX.LowLevel
@@ -133,7 +128,7 @@ namespace NanoXLSX.LowLevel
             {
                 this.PasswordHash = attribute;
             }
-            
+
         }
 
         /// <summary>
@@ -166,7 +161,7 @@ namespace NanoXLSX.LowLevel
         /// <param name="nodes">Sheet nodes to check</param>
         private void GetWorksheetInformation(XmlNodeList nodes)
         {
-            foreach(XmlNode node in nodes)
+            foreach (XmlNode node in nodes)
             {
                 if (node.LocalName.Equals("sheet", StringComparison.InvariantCultureIgnoreCase))
                 {

@@ -7,8 +7,6 @@
 
 using NanoXLSX.Exceptions;
 using NanoXLSX.Styles;
-using System;
-using System.Collections.Generic;
 
 namespace NanoXLSX.LowLevel
 {
@@ -90,7 +88,7 @@ namespace NanoXLSX.LowLevel
             {
                 return GetComponent(typeof(Style), number) as Style;
             }
-                return null;
+            return null;
         }
 
         /// <summary>
@@ -177,7 +175,7 @@ namespace NanoXLSX.LowLevel
         /// <returns>Next id of the component type (collected in this class)</returns>
         public int GetNextNumberFormatId()
         {
-                return numberFormats.Count;
+            return numberFormats.Count;
         }
 
         /// <summary>

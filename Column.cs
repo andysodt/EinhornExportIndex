@@ -60,7 +60,8 @@ namespace NanoXLSX
         /// <summary>
         /// Width of the column
         /// </summary>
-        public float Width {
+        public float Width
+        {
             get { return width; }
             set
             {
@@ -71,7 +72,7 @@ namespace NanoXLSX
                 width = value;
             }
         }
-        
+
 
         /// <summary>
         /// Default constructor (private, since not valid without address)

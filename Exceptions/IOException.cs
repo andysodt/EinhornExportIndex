@@ -5,8 +5,6 @@
  * You find a copy of the license in project folder or on: http://opensource.org/licenses/MIT
  */
 
-using System;
-
 namespace NanoXLSX.Exceptions
 {
     /// <summary>
@@ -18,7 +16,7 @@ namespace NanoXLSX.Exceptions
         /// <summary>
         /// Default constructor
         /// </summary>
-        public IOException() :base()
+        public IOException() : base()
         { }
         /// <summary>
         /// Constructor with passed message

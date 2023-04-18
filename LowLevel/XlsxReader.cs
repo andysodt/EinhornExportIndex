@@ -6,12 +6,8 @@
  */
 
 using NanoXLSX.Styles;
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.IO.Compression;
-using System.Threading.Tasks;
 using IOException = NanoXLSX.Exceptions.IOException;
 
 namespace NanoXLSX.LowLevel
@@ -187,16 +183,16 @@ namespace NanoXLSX.LowLevel
                 }
                 if (reader.Value.SelectedCells.Count > 0)
                 {
-                    foreach(Range range in reader.Value.SelectedCells)
+                    foreach (Range range in reader.Value.SelectedCells)
                     {
                         ws.AddSelectedCells(range);
                     }
                 }
-                foreach(Range range in reader.Value.MergedCells)
+                foreach (Range range in reader.Value.MergedCells)
                 {
                     ws.MergeCells(range);
                 }
-                foreach(KeyValuePair<Worksheet.SheetProtectionValue, int> sheetProtection in reader.Value.WorksheetProtection)
+                foreach (KeyValuePair<Worksheet.SheetProtectionValue, int> sheetProtection in reader.Value.WorksheetProtection)
                 {
                     ws.SheetProtectionValues.Add(sheetProtection.Key);
                 }
@@ -208,7 +204,7 @@ namespace NanoXLSX.LowLevel
                 {
                     ws.SheetProtectionPasswordHash = reader.Value.WorksheetProtectionHash;
                 }
-                foreach(KeyValuePair<int,WorksheetReader.RowDefinition> row in reader.Value.Rows)
+                foreach (KeyValuePair<int, WorksheetReader.RowDefinition> row in reader.Value.Rows)
                 {
                     if (row.Value.Hidden)
                     {
@@ -280,7 +276,7 @@ namespace NanoXLSX.LowLevel
             }
             if (styleReaderContainer.GetMruColors().Count > 0)
             {
-                foreach(string color in styleReaderContainer.GetMruColors())
+                foreach (string color in styleReaderContainer.GetMruColors())
                 {
                     wb.AddMruColor(color);
                 }

@@ -1,18 +1,13 @@
-using System;
-using System.Diagnostics;
-using System.Windows.Forms;
-using System.Runtime.InteropServices;
 using EPDM.Interop.epdm;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
-using System.Net;
 using NanoXLSX;
-using NanoXLSX.Styles;
 
 namespace EinhornExportIndex
 {
-    public partial class Form1 : Form
+    public partial class Form1 : Form, IEdmCallback6
     {
-        String IndexFileLocation = "C:\\Einhorn PDM\\ENGINEERING DATA\\PDM INDEX OUTPUT\\PDM INDEX OUTPUT.xlsx";
+        String RootFolder = "C:\\Einhorn PDM\\";
+        String OutputFolder = "ENGINEERING DATA\\PDM INDEX OUTPUT\\";
+
         IEdmVault7 vault;
         public Form1()
         {
@@ -33,19 +28,39 @@ namespace EinhornExportIndex
                 vault.LoginAuto("Einhorn PDM", this.Handle.ToInt32());
 
                 IEdmFolder5 Folder = vault.BrowseForFolder(0, "Select folder to traverse");
+                String FileName = Folder.Name + " INDEX OUTPUT.xlsx";
 
-                textBox1.AppendText("Root Folder " + Folder.Name + Environment.NewLine);
+                if (Folder != null)
+                {
+                    String Path = RootFolder + OutputFolder + Folder.Name + " INDEX OUTPUT.xlsx";
 
-                LockIndexFile();
-                Workbook workbook = getWorkbook();
+                    textBox1.AppendText("Workbook " + Path + Environment.NewLine);
 
-                TraverseFolder(Folder, workbook);
+                    Workbook workbook;
 
-                UnlockIndexFile();
+                    if (File.Exists(Path))
+                    {
+                        workbook = getWorkbook(Path);
+                    }
+                    else
+                    {
+                        workbook = newWorkbook(Path);
 
-                textBox1.AppendText("Done" + Environment.NewLine);
+                        IEdmFolder5 VaultRootFolder = default(IEdmFolder5);
+                        VaultRootFolder = (IEdmFolder5)vault.RootFolder;
+                        VaultRootFolder.AddFile(this.Handle.ToInt32(), "", Path, 0);
 
+                        textBox1.AppendText("Added to vault: " + Path);
 
+                        UnlockFile(Path);
+                    }
+
+                    LockFile(Path);
+                    TraverseFolder(Folder, workbook);
+                    UnlockFile(Path);
+
+                    textBox1.AppendText("Done" + Environment.NewLine);
+                }
             }
             catch (System.Runtime.InteropServices.COMException ex)
             {
@@ -88,35 +103,55 @@ namespace EinhornExportIndex
             }
         }
 
-        private void LockIndexFile()
+
+        private Boolean LockFile(String path)
         {
+            Boolean altered = false;
             IEdmFile5 file = default(IEdmFile5);
             IEdmFolder5 folder = null;
-            file = vault.GetFileFromPath(IndexFileLocation, out folder);
-            file.LockFile(folder.ID, this.Handle.ToInt32());
+            file = this.vault.GetFileFromPath(path, out folder);
+
+            if (file != null && !file.IsLocked)
+            {
+                altered = true;
+                file.LockFile(folder.ID, this.Handle.ToInt32());
+
+                textBox1.AppendText("Locked file " + path + Environment.NewLine);
+            }
+
+            return altered;
         }
 
-        private void UnlockIndexFile()
+        private Boolean UnlockFile(String path)
         {
+            Boolean altered = false;
             IEdmFile5 file = default(IEdmFile5);
             IEdmFolder5 folder = null;
-            file = vault.GetFileFromPath(IndexFileLocation, out folder);
-            file.UnlockFile(folder.ID, "update");
+            file = this.vault.GetFileFromPath(path, out folder);
+
+            if (file != null && file.IsLocked)
+            {
+                altered = true;
+                file.UnlockFile(folder.ID, "update");
+
+                textBox1.AppendText("Unlocked file " + path + Environment.NewLine);
+            }
+
+            return altered;
         }
 
-        private Workbook getWorkbook()
+        private Workbook getWorkbook(String Path)
         {
-            Workbook workbook = null;
-            if (System.IO.File.Exists(IndexFileLocation))
-            {
-                workbook = Workbook.Load(IndexFileLocation);
-            }
-            else
-            {
-                workbook = new Workbook();
-            }
-            workbook.Filename = IndexFileLocation;
-
+            Workbook workbook = Workbook.Load(Path);
+            workbook.Filename = Path;
+            textBox1.AppendText("Loaded workbook " + Path);
+            return workbook;
+        }
+        private Workbook newWorkbook(String Path)
+        {
+            Workbook workbook = new Workbook();
+            workbook.Filename = Path;
+            textBox1.AppendText("Created workbook " + Path);
             return workbook;
         }
 
@@ -146,8 +181,8 @@ namespace EinhornExportIndex
 
             workbook.AddWorksheet(Folder.Name);
 
-            List<object> values = new List<object>() { "File.ID", "Name", "Revision", "# Sheets", "Description", "Resp Eng", "Drawn By", "State", "Version", "Notes", "Inspection Notes", "State Comments", "Checkin Comments" };
-            workbook.CurrentWorksheet.AddCellRange(values, new Address(0, 0), new Address(12, 0));
+            List<object> values = new List<object>() { "Name", "Revision", "# Sheets", "Description", "Resp Eng", "Drawn By", "State", "Version", "Notes", "Inspection Notes", "State Comments", "Checkin Comments" };
+            workbook.CurrentWorksheet.AddCellRange(values, new Address(0, 0), new Address(11, 0));
             workbook.CurrentWorksheet.Cells["A1"].SetStyle(NanoXLSX.Styles.BasicStyles.Bold);
             workbook.CurrentWorksheet.Cells["B1"].SetStyle(NanoXLSX.Styles.BasicStyles.Bold);
             workbook.CurrentWorksheet.Cells["C1"].SetStyle(NanoXLSX.Styles.BasicStyles.Bold);
@@ -160,20 +195,19 @@ namespace EinhornExportIndex
             workbook.CurrentWorksheet.Cells["J1"].SetStyle(NanoXLSX.Styles.BasicStyles.Bold);
             workbook.CurrentWorksheet.Cells["K1"].SetStyle(NanoXLSX.Styles.BasicStyles.Bold);
             workbook.CurrentWorksheet.Cells["L1"].SetStyle(NanoXLSX.Styles.BasicStyles.Bold);
-            workbook.CurrentWorksheet.Cells["M1"].SetStyle(NanoXLSX.Styles.BasicStyles.Bold);
             workbook.CurrentWorksheet.GoToNextRow();
 
-            IEdmHistory2 history = (IEdmHistory2)vault.CreateUtility(EdmUtility.EdmUtil_History);
             IEdmPos5 FilePos = default(IEdmPos5);
             FilePos = Folder.GetFirstFilePosition();
             IEdmFile5 file = default(IEdmFile5);
+
             while (!FilePos.IsNull)
             {
+
                 file = Folder.GetNextFile(FilePos);
                 textBox1.AppendText("Reading File " + file.Name + Environment.NewLine);
 
-                workbook.CurrentWorksheet.AddNextCell(file.ID);
-                history.AddFile(file.ID);
+
 
                 IEdmEnumeratorVariable8 EnumVarObj = default(IEdmEnumeratorVariable8);
                 EnumVarObj = (IEdmEnumeratorVariable8)file.GetEnumeratorVariable();
@@ -192,17 +226,67 @@ namespace EinhornExportIndex
 
                 AddVarColumn(workbook, EnumVarObj, "Notes");
                 AddVarColumn(workbook, EnumVarObj, "Inspection Notes");
-                AddVarColumn(workbook, EnumVarObj, "State Comments");
-                AddVarColumn(workbook, EnumVarObj, "Checkin Comments");
+
+                IEdmHistory2 history = (IEdmHistory2)vault.CreateUtility(EdmUtility.EdmUtil_History);
+                history.AddFile(file.ID);
+                EdmHistoryItem[] ppoRethistory = null;
+
+                history.GetHistory(ref ppoRethistory, (int)EdmHistoryType.Edmhist_FileState);
+                workbook.CurrentWorksheet.AddNextCell(ppoRethistory[0].mbsComment);
+
+                history.GetHistory(ref ppoRethistory, (int)EdmHistoryType.Edmhist_FileVersion);
+                workbook.CurrentWorksheet.AddNextCell(ppoRethistory[0].mbsComment);
 
                 workbook.CurrentWorksheet.GoToNextRow();
             }
 
-            EdmHistoryItem[] ppoRethistory = null;
-            history.GetHistory(ref ppoRethistory, (int)EdmHistoryType.Edmhist_FileVersion);
             workbook.Save();
 
         }
+
+        private EdmMBoxResult IEdmCallback6_MsgBox(int lParentWnd, int lMsgID, string bsMsg, EdmMBoxType eType = 0L)
+        {
+            MessageBox.Show(bsMsg);
+            return EdmMBoxResult.EdmMbr_OK;
+        }
+        EdmMBoxResult IEdmCallback6.MsgBox(int lParentWnd, int lMsgID, string bsMsg, EdmMBoxType eType)
+        {
+            return IEdmCallback6_MsgBox(lParentWnd, lMsgID, bsMsg, eType);
+        }
+
+        private void IEdmCallback6_Resolve(int lParentWnd, ref EdmCmdData[] ppoItems)
+        {
+        }
+        void IEdmCallback6.Resolve(int lParentWnd, ref EdmCmdData[] ppoItems)
+        {
+            IEdmCallback6_Resolve(lParentWnd, ref ppoItems);
+        }
+
+        private bool IEdmCallback6_SetProgress(int lBarIndex, int lPos, string bsMsg)
+        {
+            return true;
+        }
+        bool IEdmCallback6.SetProgress(int lBarIndex, int lPos, string bsMsg)
+        {
+            return IEdmCallback6_SetProgress(lBarIndex, lPos, bsMsg);
+        }
+
+        private void IEdmCallback6_SetProgressRange(int lBarIndex, int lMax)
+        {
+        }
+        void IEdmCallback6.SetProgressRange(int lBarIndex, int lMax)
+        {
+            IEdmCallback6_SetProgressRange(lBarIndex, lMax);
+        }
+
+        private void IEdmCallback6_SetStatusMessage(int lBarIndex, string bsMessage)
+        {
+        }
+        void IEdmCallback6.SetStatusMessage(int lBarIndex, string bsMessage)
+        {
+            IEdmCallback6_SetStatusMessage(lBarIndex, bsMessage);
+        }
+
     }
 }
 

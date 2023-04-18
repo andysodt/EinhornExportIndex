@@ -5,7 +5,6 @@
  * You find a copy of the license in project folder or on: http://opensource.org/licenses/MIT
  */
 
-using System.Collections.Generic;
 using System.Text;
 
 namespace NanoXLSX.Styles
@@ -145,7 +144,7 @@ namespace NanoXLSX.Styles
         [Append]
         public string RightColor
         {
-            get => rightColor; 
+            get => rightColor;
             set
             {
                 Fill.ValidateColor(value, true, true);
@@ -384,7 +383,7 @@ namespace NanoXLSX.Styles
                 case StyleValue.s_double:
                     output = "double";
                     break;
-               // Default / none is already handled (ignored)
+                    // Default / none is already handled (ignored)
             }
             return output;
         }

@@ -5,18 +5,13 @@
  * You find a copy of the license in project folder or on: http://opensource.org/licenses/MIT
  */
 
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.IO.Packaging;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml;
 using NanoXLSX.Exceptions;
 using NanoXLSX.Styles;
+using System.Globalization;
+using System.IO.Packaging;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Xml;
 using FormatException = NanoXLSX.Exceptions.FormatException;
 using IOException = NanoXLSX.Exceptions.IOException;
 
@@ -122,7 +117,7 @@ namespace NanoXLSX.LowLevel
             }
             else
             {
-                if (Char.IsWhiteSpace(value,0) || Char.IsWhiteSpace(value, len-1))
+                if (Char.IsWhiteSpace(value, 0) || Char.IsWhiteSpace(value, len - 1))
                 {
                     sb.Append("<t xml:space=\"preserve\">");
                 }
@@ -142,7 +137,7 @@ namespace NanoXLSX.LowLevel
         /// <returns>Normalized value</returns>
         private string NormalizeNewLines(string value)
         {
-            if (value == null ||  (!value.Contains('\n') && !value.Contains('\r')))
+            if (value == null || (!value.Contains('\n') && !value.Contains('\r')))
             {
                 return value;
             }
@@ -349,7 +344,7 @@ namespace NanoXLSX.LowLevel
         {
             List<DynamicRow> cellData = GetSortedSheetData(worksheet);
             string line;
-            foreach(DynamicRow row in cellData)
+            foreach (DynamicRow row in cellData)
             {
                 line = CreateRowString(row, worksheet);
                 sb.Append(line);
@@ -935,8 +930,8 @@ namespace NanoXLSX.LowLevel
                 {
                     if (item.Value == null)
                     {
-                       typeAttribute = null;
-                       valueDef = null;
+                        typeAttribute = null;
+                        valueDef = null;
                     }
                     else // Handle sharedStrings
                     {
@@ -1032,8 +1027,8 @@ namespace NanoXLSX.LowLevel
             string temp;
             foreach (KeyValuePair<Worksheet.SheetProtectionValue, int> item in actualLockingValues)
             {
-                    temp = Enum.GetName(typeof(Worksheet.SheetProtectionValue), item.Key); // Note! If the enum names differs from the OOXML definitions, this method will cause invalid OOXML entries
-                    sb.Append(" ").Append(temp).Append("=\"").Append(item.Value.ToString("G", culture)).Append("\"");
+                temp = Enum.GetName(typeof(Worksheet.SheetProtectionValue), item.Key); // Note! If the enum names differs from the OOXML definitions, this method will cause invalid OOXML entries
+                sb.Append(" ").Append(temp).Append("=\"").Append(item.Value.ToString("G", culture)).Append("\"");
             }
             if (!string.IsNullOrEmpty(sheet.SheetProtectionPasswordHash))
             {
@@ -1383,8 +1378,8 @@ namespace NanoXLSX.LowLevel
             foreach (string item in this.workbook.GetMruColors())
             {
                 if (item == Fill.DEFAULT_COLOR)
-                { 
-                    continue; 
+                {
+                    continue;
                 }
                 if (!tempColors.Contains(item)) { tempColors.Add(item); }
             }
@@ -1446,10 +1441,10 @@ namespace NanoXLSX.LowLevel
                     rows.Add(rowHeight.Key, row);
                 }
             }
-            foreach(KeyValuePair<int, bool> hiddenRow in sheet.HiddenRows)
+            foreach (KeyValuePair<int, bool> hiddenRow in sheet.HiddenRows)
             {
-               if (!rows.ContainsKey(hiddenRow.Key))
-               {
+                if (!rows.ContainsKey(hiddenRow.Key))
+                {
                     row = new DynamicRow();
                     row.RowNumber = hiddenRow.Key;
                     rows.Add(hiddenRow.Key, row);

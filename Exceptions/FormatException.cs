@@ -5,8 +5,6 @@
  * You find a copy of the license in project folder or on: http://opensource.org/licenses/MIT
  */
 
-using System;
-
 namespace NanoXLSX.Exceptions
 {
     /// <summary>
@@ -35,6 +33,6 @@ namespace NanoXLSX.Exceptions
         /// <param name="inner">Inner exception</param>
         public FormatException(string message, Exception inner)
             : base(message, inner)
-        {  }
+        { }
     }
 }

@@ -5,12 +5,8 @@
  * You find a copy of the license in project folder or on: http://opensource.org/licenses/MIT
  */
 
-using System;
-using System.Linq;
-using System.IO;
-using System.Xml;
-using NanoXLSX.Exceptions;
 using NanoXLSX.Styles;
+using System.Xml;
 using IOException = NanoXLSX.Exceptions.IOException;
 
 namespace NanoXLSX.LowLevel
@@ -102,20 +98,20 @@ namespace NanoXLSX.LowLevel
         /// <param name="node">Number formats root name</param>
         private void GetNumberFormats(XmlNode node)
         {
-                foreach (XmlNode childNode in node.ChildNodes)
+            foreach (XmlNode childNode in node.ChildNodes)
+            {
+                if (childNode.LocalName.Equals("numfmt", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    if (childNode.LocalName.Equals("numfmt", StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        NumberFormat numberFormat = new NumberFormat();
-                        int id = ReaderUtils.ParseInt(ReaderUtils.GetAttribute(childNode, "numFmtId")); // Default will (justified) throw an exception
-                        string code = ReaderUtils.GetAttribute(childNode, "formatCode", string.Empty); // Code is not un-escaped
-                        numberFormat.CustomFormatID = id;
-                        numberFormat.Number = NumberFormat.FormatNumber.custom;
-                        numberFormat.InternalID = id;
-                        numberFormat.CustomFormatCode = code;
-                        StyleReaderContainer.AddStyleComponent(numberFormat);
-                    }
+                    NumberFormat numberFormat = new NumberFormat();
+                    int id = ReaderUtils.ParseInt(ReaderUtils.GetAttribute(childNode, "numFmtId")); // Default will (justified) throw an exception
+                    string code = ReaderUtils.GetAttribute(childNode, "formatCode", string.Empty); // Code is not un-escaped
+                    numberFormat.CustomFormatID = id;
+                    numberFormat.Number = NumberFormat.FormatNumber.custom;
+                    numberFormat.InternalID = id;
+                    numberFormat.CustomFormatCode = code;
+                    StyleReaderContainer.AddStyleComponent(numberFormat);
                 }
+            }
         }
 
         /// <summary>
@@ -177,15 +173,15 @@ namespace NanoXLSX.LowLevel
                 }
                 borderStyle.InternalID = StyleReaderContainer.GetNextBorderId();
                 StyleReaderContainer.AddStyleComponent(borderStyle);
-                }
+            }
         }
 
-            /// <summary>
-            /// Tries to parse a border style
-            /// </summary>
-            /// <param name="innerNode">Border sub-node</param>
-            /// <returns>Border type or non if parsing was not successful</returns>
-         private static Border.StyleValue ParseBorderStyle(XmlNode innerNode)
+        /// <summary>
+        /// Tries to parse a border style
+        /// </summary>
+        /// <param name="innerNode">Border sub-node</param>
+        /// <returns>Border type or non if parsing was not successful</returns>
+        private static Border.StyleValue ParseBorderStyle(XmlNode innerNode)
         {
             string value = ReaderUtils.GetAttribute(innerNode, "style");
             if (value != null)
@@ -312,7 +308,7 @@ namespace NanoXLSX.LowLevel
                         fontStyle.ColorTheme = ReaderUtils.ParseInt(attribute);
                     }
                     attribute = ReaderUtils.GetAttribute(colorNode, "rgb");
-                   if (attribute != null)
+                    if (attribute != null)
                     {
                         fontStyle.ColorValue = attribute;
                     }
@@ -354,10 +350,10 @@ namespace NanoXLSX.LowLevel
         /// <param name="node">Cell XF root node</param>
         private void GetCellXfs(XmlNode node)
         {
-                foreach (XmlNode childNode in node.ChildNodes)
+            foreach (XmlNode childNode in node.ChildNodes)
+            {
+                if (ReaderUtils.IsNode(childNode, "xf"))
                 {
-                    if (ReaderUtils.IsNode(childNode, "xf"))
-                    {
                     CellXf cellXfStyle = new CellXf();
                     string attribute = ReaderUtils.GetAttribute(childNode, "applyAlignment");
                     if (attribute != null)
@@ -376,7 +372,7 @@ namespace NanoXLSX.LowLevel
                             {
                                 cellXfStyle.Alignment = CellXf.TextBreakValue.shrinkToFit;
                             }
-                                
+
                         }
                         attribute = ReaderUtils.GetAttribute(alignmentNode, "wrapText");
                         if (attribute != null)
@@ -385,7 +381,7 @@ namespace NanoXLSX.LowLevel
                             if (value == 1)
                             {
                                 cellXfStyle.Alignment = CellXf.TextBreakValue.wrapText;
-                            } 
+                            }
                         }
                         attribute = ReaderUtils.GetAttribute(alignmentNode, "horizontal");
                         CellXf.HorizontalAlignValue horizontalAlignValue;
@@ -427,7 +423,7 @@ namespace NanoXLSX.LowLevel
                         if (attribute != null)
                         {
                             int value = ReaderUtils.ParseBinaryBool(attribute);
-                            if (value  == 1)
+                            if (value == 1)
                             {
                                 cellXfStyle.Locked = true;
                             }
@@ -485,8 +481,8 @@ namespace NanoXLSX.LowLevel
                     style.InternalID = StyleReaderContainer.GetNextStyleId();
 
                     StyleReaderContainer.AddStyleComponent(style);
-                    }
                 }
+            }
         }
 
         /// <summary>
@@ -507,7 +503,7 @@ namespace NanoXLSX.LowLevel
                         {
                             StyleReaderContainer.AddMruColor(attribute);
                         }
-                   }
+                    }
                 }
             }
         }
