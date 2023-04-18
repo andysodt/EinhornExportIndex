@@ -1,9 +1,11 @@
 using EPDM.Interop.epdm;
 using NanoXLSX;
+using System.Runtime.Intrinsics.Arm;
+using System;
 
 namespace EinhornExportIndex
 {
-    public partial class Form1 : Form, IEdmCallback6
+    public partial class Form1 : Form
     {
         String RootFolder = "C:\\Einhorn PDM\\";
         String OutputFolder = "ENGINEERING DATA\\PDM INDEX OUTPUT\\";
@@ -40,22 +42,20 @@ namespace EinhornExportIndex
 
                     if (File.Exists(Path))
                     {
+                        LockFile(Path);
                         workbook = getWorkbook(Path);
                     }
                     else
                     {
                         workbook = newWorkbook(Path);
 
-                        IEdmFolder5 VaultRootFolder = default(IEdmFolder5);
-                        VaultRootFolder = (IEdmFolder5)vault.RootFolder;
-                        VaultRootFolder.AddFile(this.Handle.ToInt32(), "", Path, 0);
+                        IEdmFolder5 VaultFolder = default(IEdmFolder5);
+                        VaultFolder = (IEdmFolder5)vault.RootFolder.GetSubFolder("ENGINEERING DATA").GetSubFolder("PDM INDEX OUTPUT"); ;
+                        int ret = VaultFolder.AddFile(this.Handle.ToInt32(), "", FileName, 1);
 
-                        textBox1.AppendText("Added to vault: " + Path);
-
-                        UnlockFile(Path);
+                        textBox1.AppendText("Added to vault: " + Path +  Environment.NewLine);
                     }
 
-                    LockFile(Path);
                     TraverseFolder(Folder, workbook);
                     UnlockFile(Path);
 
@@ -144,14 +144,14 @@ namespace EinhornExportIndex
         {
             Workbook workbook = Workbook.Load(Path);
             workbook.Filename = Path;
-            textBox1.AppendText("Loaded workbook " + Path);
+            textBox1.AppendText("Loaded workbook " + Path + Environment.NewLine);
             return workbook;
         }
         private Workbook newWorkbook(String Path)
         {
             Workbook workbook = new Workbook();
             workbook.Filename = Path;
-            textBox1.AppendText("Created workbook " + Path);
+            textBox1.AppendText("Created workbook " + Path + Environment.NewLine);
             return workbook;
         }
 
@@ -242,49 +242,6 @@ namespace EinhornExportIndex
 
             workbook.Save();
 
-        }
-
-        private EdmMBoxResult IEdmCallback6_MsgBox(int lParentWnd, int lMsgID, string bsMsg, EdmMBoxType eType = 0L)
-        {
-            MessageBox.Show(bsMsg);
-            return EdmMBoxResult.EdmMbr_OK;
-        }
-        EdmMBoxResult IEdmCallback6.MsgBox(int lParentWnd, int lMsgID, string bsMsg, EdmMBoxType eType)
-        {
-            return IEdmCallback6_MsgBox(lParentWnd, lMsgID, bsMsg, eType);
-        }
-
-        private void IEdmCallback6_Resolve(int lParentWnd, ref EdmCmdData[] ppoItems)
-        {
-        }
-        void IEdmCallback6.Resolve(int lParentWnd, ref EdmCmdData[] ppoItems)
-        {
-            IEdmCallback6_Resolve(lParentWnd, ref ppoItems);
-        }
-
-        private bool IEdmCallback6_SetProgress(int lBarIndex, int lPos, string bsMsg)
-        {
-            return true;
-        }
-        bool IEdmCallback6.SetProgress(int lBarIndex, int lPos, string bsMsg)
-        {
-            return IEdmCallback6_SetProgress(lBarIndex, lPos, bsMsg);
-        }
-
-        private void IEdmCallback6_SetProgressRange(int lBarIndex, int lMax)
-        {
-        }
-        void IEdmCallback6.SetProgressRange(int lBarIndex, int lMax)
-        {
-            IEdmCallback6_SetProgressRange(lBarIndex, lMax);
-        }
-
-        private void IEdmCallback6_SetStatusMessage(int lBarIndex, string bsMessage)
-        {
-        }
-        void IEdmCallback6.SetStatusMessage(int lBarIndex, string bsMessage)
-        {
-            IEdmCallback6_SetStatusMessage(lBarIndex, bsMessage);
         }
 
     }
