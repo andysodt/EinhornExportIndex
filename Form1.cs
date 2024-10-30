@@ -76,7 +76,7 @@ namespace EinhornExportIndex
         {
             try
             {
-                if (CurFolder.Name.EndsWith("-DRAWINGS"))
+                if (CurFolder.Name.EndsWith("-DRAWINGS") || CurFolder.Name.EndsWith("-ANALYSIS"))
                 {
                     textBox1.AppendText("Updating worksheet " + CurFolder.Name + Environment.NewLine);
                     AddWorksheet(workbook, CurFolder);
