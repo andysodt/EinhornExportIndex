@@ -2,6 +2,7 @@ using EPDM.Interop.epdm;
 using NanoXLSX;
 using System.Runtime.Intrinsics.Arm;
 using System;
+using System.Text.RegularExpressions;
 
 namespace EinhornExportIndex
 {
@@ -201,43 +202,49 @@ namespace EinhornExportIndex
             FilePos = Folder.GetFirstFilePosition();
             IEdmFile5 file = default(IEdmFile5);
 
+            // Instantiate the regular expression object to match file names
+            Regex r = new Regex("^[A-Za-z][A-Za-z]-\\d\\d-[A-Za-z]\\d\\d\\d\\..*$");
+
             while (!FilePos.IsNull)
             {
 
                 file = Folder.GetNextFile(FilePos);
-                textBox1.AppendText("Reading File " + file.Name + Environment.NewLine);
 
+                if (r.IsMatch(file.Name))
+                {
 
+                    textBox1.AppendText("Reading File " + file.Name + Environment.NewLine);
 
-                IEdmEnumeratorVariable8 EnumVarObj = default(IEdmEnumeratorVariable8);
-                EnumVarObj = (IEdmEnumeratorVariable8)file.GetEnumeratorVariable();
-                object VarObj = null;
+                    IEdmEnumeratorVariable8 EnumVarObj = default(IEdmEnumeratorVariable8);
+                    EnumVarObj = (IEdmEnumeratorVariable8)file.GetEnumeratorVariable();
+                    object VarObj = null;
 
-                workbook.CurrentWorksheet.AddNextCell(Path.GetFileNameWithoutExtension(file.Name));
+                    workbook.CurrentWorksheet.AddNextCell(Path.GetFileNameWithoutExtension(file.Name));
 
-                AddVarColumn(workbook, EnumVarObj, "Revision");
-                AddVarColumn(workbook, EnumVarObj, "# Sheets");
-                AddVarColumn(workbook, EnumVarObj, "Description");
-                AddVarColumn(workbook, EnumVarObj, "Resp Eng");
-                AddVarColumn(workbook, EnumVarObj, "Drawn By");
+                    AddVarColumn(workbook, EnumVarObj, "Revision");
+                    AddVarColumn(workbook, EnumVarObj, "# Sheets");
+                    AddVarColumn(workbook, EnumVarObj, "Description");
+                    AddVarColumn(workbook, EnumVarObj, "Resp Eng");
+                    AddVarColumn(workbook, EnumVarObj, "Drawn By");
 
-                workbook.CurrentWorksheet.AddNextCell(file.CurrentState.Name);
-                workbook.CurrentWorksheet.AddNextCell(file.CurrentVersion.ToString());
+                    workbook.CurrentWorksheet.AddNextCell(file.CurrentState.Name);
+                    workbook.CurrentWorksheet.AddNextCell(file.CurrentVersion.ToString());
 
-                AddVarColumn(workbook, EnumVarObj, "Notes");
-                AddVarColumn(workbook, EnumVarObj, "Inspection Notes");
+                    AddVarColumn(workbook, EnumVarObj, "Notes");
+                    AddVarColumn(workbook, EnumVarObj, "Inspection Notes");
 
-                IEdmHistory2 history = (IEdmHistory2)vault.CreateUtility(EdmUtility.EdmUtil_History);
-                history.AddFile(file.ID);
-                EdmHistoryItem[] ppoRethistory = null;
+                    IEdmHistory2 history = (IEdmHistory2)vault.CreateUtility(EdmUtility.EdmUtil_History);
+                    history.AddFile(file.ID);
+                    EdmHistoryItem[] ppoRethistory = null;
 
-                history.GetHistory(ref ppoRethistory, (int)EdmHistoryType.Edmhist_FileState);
-                workbook.CurrentWorksheet.AddNextCell(ppoRethistory[0].mbsComment);
+                    history.GetHistory(ref ppoRethistory, (int)EdmHistoryType.Edmhist_FileState);
+                    workbook.CurrentWorksheet.AddNextCell(ppoRethistory[0].mbsComment);
 
-                history.GetHistory(ref ppoRethistory, (int)EdmHistoryType.Edmhist_FileVersion);
-                workbook.CurrentWorksheet.AddNextCell(ppoRethistory[0].mbsComment);
+                    history.GetHistory(ref ppoRethistory, (int)EdmHistoryType.Edmhist_FileVersion);
+                    workbook.CurrentWorksheet.AddNextCell(ppoRethistory[0].mbsComment);
 
-                workbook.CurrentWorksheet.GoToNextRow();
+                    workbook.CurrentWorksheet.GoToNextRow();
+                }
             }
 
             workbook.Save();
