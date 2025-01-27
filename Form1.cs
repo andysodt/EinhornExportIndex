@@ -1,8 +1,10 @@
 using EPDM.Interop.epdm;
-using NanoXLSX;
+using ClosedXML;
 using System.Runtime.Intrinsics.Arm;
 using System;
 using System.Text.RegularExpressions;
+using System.Data;
+using ClosedXML.Excel;
 
 namespace EinhornExportIndex
 {
@@ -31,36 +33,32 @@ namespace EinhornExportIndex
                 vault.LoginAuto("Einhorn PDM", this.Handle.ToInt32());
 
                 IEdmFolder5 Folder = vault.BrowseForFolder(0, "Select folder to traverse");
-                String FileName = Folder.Name + " INDEX OUTPUT.xlsx";
 
                 if (Folder != null)
                 {
-                    String Path = RootFolder + OutputFolder + Folder.Name + " INDEX OUTPUT.xlsx";
+                    String Path = RootFolder + OutputFolder + Folder.Name + " INDEX S.xlsx";
 
                     textBox1.AppendText("Workbook " + Path + Environment.NewLine);
 
-                    Workbook workbook;
+                    XLWorkbook workbook;
 
                     if (File.Exists(Path))
                     {
+                        String NewPath = RootFolder + OutputFolder + Folder.Name + " INDEX NEW.xlsx";
+
                         LockFile(Path);
                         workbook = getWorkbook(Path);
+                        TraverseFolder(Folder, workbook);
+                        workbook.SaveAs(NewPath);
+                        textBox1.AppendText("Done Processing" + Environment.NewLine);
+                        UnlockFile(Path);
                     }
                     else
                     {
-                        workbook = newWorkbook(Path);
-
-                        IEdmFolder5 VaultFolder = default(IEdmFolder5);
-                        VaultFolder = (IEdmFolder5)vault.RootFolder.GetSubFolder("ENGINEERING DATA").GetSubFolder("PDM INDEX OUTPUT"); ;
-                        int ret = VaultFolder.AddFile(this.Handle.ToInt32(), "", FileName, 1);
-
-                        textBox1.AppendText("Added to vault: " + Path +  Environment.NewLine);
+                        textBox1.AppendText("Template file does not exist: " + Path + Environment.NewLine);
                     }
 
-                    TraverseFolder(Folder, workbook);
-                    UnlockFile(Path);
 
-                    textBox1.AppendText("Done" + Environment.NewLine);
                 }
             }
             catch (System.Runtime.InteropServices.COMException ex)
@@ -73,14 +71,17 @@ namespace EinhornExportIndex
             }
         }
 
-        private void TraverseFolder(IEdmFolder5 CurFolder, Workbook workbook)
+
+        /*
+         * Traverse all the subfolders in the chosen folder andupdate the matching worksheet in the workbook
+         */
+        private void TraverseFolder(IEdmFolder5 CurFolder, XLWorkbook workbook)
         {
             try
             {
                 if (CurFolder.Name.EndsWith("-DRAWINGS") || CurFolder.Name.EndsWith("-ANALYSIS"))
                 {
-                    textBox1.AppendText("Updating worksheet " + CurFolder.Name + Environment.NewLine);
-                    AddWorksheet(workbook, CurFolder);
+                    UpdateWorksheet(workbook, CurFolder);
                 }
 
                 //Enumerate the sub-folders in the folder
@@ -104,6 +105,81 @@ namespace EinhornExportIndex
             }
         }
 
+        /*
+         * Update the worksheet whose name that matches the folder name
+         * Ignore folders that do not have a matching worksheet
+         */
+        private void UpdateWorksheet(XLWorkbook workbook, IEdmFolder5 Folder)
+        {
+            IXLWorksheet sheet = null;
+            if (workbook.TryGetWorksheet(Folder.Name, out sheet))
+            {
+                textBox1.AppendText("Updating worksheet " + Folder.Name + Environment.NewLine);
+
+                IEdmPos5 FilePos = default(IEdmPos5);
+                FilePos = Folder.GetFirstFilePosition();
+                IEdmFile5 file = default(IEdmFile5);
+
+                // Instantiate the regular expression object to match file names
+                Regex r = new Regex("^[A-Za-z][A-Za-z]-\\d\\d-[A-Za-z]\\d\\d\\d\\..*$");
+
+                while (!FilePos.IsNull)
+                {
+
+                    file = Folder.GetNextFile(FilePos);
+
+                    if (r.IsMatch(file.Name))
+                    {
+                        textBox1.AppendText("Reading File " + file.Name + Environment.NewLine);
+                        UpdateRow(sheet, file);
+                    }
+                }
+            }
+        }
+
+        private void UpdateRow(IXLWorksheet sheet, IEdmFile5 file)
+        {
+            Boolean done = false;
+            for (int row = 4; !done && row < sheet.RowCount(); row++)
+            {
+                IXLCell cell = sheet.Cell("B" + row);
+                string fileName = cell.CachedValue + ".SLDDRW";
+                if (fileName == file.Name)
+                {
+                    textBox1.AppendText("Row " + Convert.ToString(row) + " matched " + fileName + Environment.NewLine);
+
+                    IEdmEnumeratorVariable8 EnumVarObj = default(IEdmEnumeratorVariable8);
+                    EnumVarObj = (IEdmEnumeratorVariable8)file.GetEnumeratorVariable();
+                    object VarObj = null;
+
+                    UpdateColumn(sheet, file, row, 3, "Revision", true);
+                    UpdateColumn(sheet, file, row, 4, "# Sheets", false);
+
+                    done = true;
+                }
+            }
+        }
+
+        private void UpdateColumn(IXLWorksheet sheet, IEdmFile5 file, int row, int column, String name, Boolean isString)
+        {
+            IEdmEnumeratorVariable8 EnumVarObj = default(IEdmEnumeratorVariable8);
+            EnumVarObj = (IEdmEnumeratorVariable8)file.GetEnumeratorVariable();
+            object VarObj = null;
+
+            if (EnumVarObj.GetVar(name, "@", out VarObj) == true)
+            {
+                if (isString)
+                {
+                    sheet.Cell(row, column).Value = Convert.ToString(VarObj);
+                }
+                else
+                {
+                    sheet.Cell(row, column).Value = Convert.ToInt64(VarObj);
+                }
+
+                textBox1.AppendText("Row " + row + " Column " + column + " set to " + VarObj.ToString() + Environment.NewLine);
+            }
+        }
 
         private Boolean LockFile(String path)
         {
@@ -141,27 +217,26 @@ namespace EinhornExportIndex
             return altered;
         }
 
-        private Workbook getWorkbook(String Path)
+        private XLWorkbook getWorkbook(String Path)
         {
-            Workbook workbook = Workbook.Load(Path);
-            workbook.Filename = Path;
+            var workbook = new XLWorkbook(Path);
             textBox1.AppendText("Loaded workbook " + Path + Environment.NewLine);
             return workbook;
         }
-        private Workbook newWorkbook(String Path)
+        private XLWorkbook newWorkbook(String Path)
         {
-            Workbook workbook = new Workbook();
-            workbook.Filename = Path;
+            XLWorkbook workbook = new XLWorkbook();
             textBox1.AppendText("Created workbook " + Path + Environment.NewLine);
             return workbook;
         }
 
-        private void AddVarColumn(Workbook workbook, IEdmEnumeratorVariable8 EnumVarObj, String Name)
+        /*
+        private void AddVarColumn(XLWorkbook workbook, IEdmEnumeratorVariable8 EnumVarObj, String Name)
         {
             object VarObj = null;
             if (EnumVarObj.GetVar(Name, "@", out VarObj) == true)
             {
-                workbook.CurrentWorksheet.AddNextCell(VarObj.ToString());
+                workbook.AddNextCell(VarObj.ToString());
             }
             else
             {
@@ -169,7 +244,7 @@ namespace EinhornExportIndex
             }
         }
 
-        private void AddWorksheet(Workbook workbook, IEdmFolder5 Folder)
+        private void AddWorksheet(XLWorkbook workbook, IEdmFolder5 Folder)
         {
 
             try
@@ -251,7 +326,63 @@ namespace EinhornExportIndex
 
         }
 
+        private void EinhornExportIndex_Click(System.Object sender, System.EventArgs e)
+        {
+            try
+            {
+                vault = new EdmVault5();
+
+                //Log into selected vault as the current user
+                vault.LoginAuto("Einhorn PDM", this.Handle.ToInt32());
+
+                IEdmFolder5 Folder = vault.BrowseForFolder(0, "Select folder to traverse");
+                String FileName = Folder.Name + " INDEX OUTPUT.xlsx";
+
+                if (Folder != null)
+                {
+                    String Path = RootFolder + OutputFolder + Folder.Name + " INDEX OUTPUT.xlsx";
+
+                    textBox1.AppendText("Workbook " + Path + Environment.NewLine);
+
+                    Workbook workbook;
+
+                    if (File.Exists(Path))
+                    {
+                        LockFile(Path);
+                        workbook = getWorkbook(Path);
+                    }
+                    else
+                    {
+                        workbook = newWorkbook(Path);
+
+                        IEdmFolder5 VaultFolder = default(IEdmFolder5);
+                        VaultFolder = (IEdmFolder5)vault.RootFolder.GetSubFolder("ENGINEERING DATA").GetSubFolder("PDM INDEX OUTPUT"); ;
+                        int ret = VaultFolder.AddFile(this.Handle.ToInt32(), "", FileName, 1);
+
+                        textBox1.AppendText("Added to vault: " + Path +  Environment.NewLine);
+                    }
+
+                    TraverseFolder(Folder, workbook);
+                    workbook.Save();
+
+                    UnlockFile(Path);
+
+                    textBox1.AppendText("Done" + Environment.NewLine);
+                }
+            }
+            catch (System.Runtime.InteropServices.COMException ex)
+            {
+                MessageBox.Show("HRESULT = 0x" + ex.ErrorCode.ToString("X") + " " + ex.Message);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+        }
+    */
+
     }
+
 }
 
 
