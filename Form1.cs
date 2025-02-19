@@ -1,10 +1,8 @@
 using EPDM.Interop.epdm;
-using ClosedXML;
-using System.Runtime.Intrinsics.Arm;
-using System;
 using System.Text.RegularExpressions;
-using System.Data;
 using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace EinhornExportIndex
 {
@@ -36,7 +34,7 @@ namespace EinhornExportIndex
 
                 if (Folder != null)
                 {
-                    String Path = RootFolder + OutputFolder + Folder.Name + " INDEX S.xlsx";
+                    String Path = RootFolder + OutputFolder + Folder.Name + " INDEX.xlsx";
 
                     textBox1.AppendText("Workbook " + Path + Environment.NewLine);
 
@@ -44,14 +42,12 @@ namespace EinhornExportIndex
 
                     if (File.Exists(Path))
                     {
-                        String NewPath = RootFolder + OutputFolder + Folder.Name + " INDEX NEW.xlsx";
-
-                        LockFile(Path);
+                        //LockFile(Path);
                         workbook = getWorkbook(Path);
                         TraverseFolder(Folder, workbook);
-                        workbook.SaveAs(NewPath);
+                        workbook.SaveAs(Path);
                         textBox1.AppendText("Done Processing" + Environment.NewLine);
-                        UnlockFile(Path);
+                        //UnlockFile(Path);
                     }
                     else
                     {
@@ -140,9 +136,9 @@ namespace EinhornExportIndex
         private void UpdateRow(IXLWorksheet sheet, IEdmFile5 file)
         {
             Boolean done = false;
-            for (int row = 4; !done && row < sheet.RowCount(); row++)
+            for (int row = 1; !done && row < sheet.RowCount(); row++)
             {
-                IXLCell cell = sheet.Cell("B" + row);
+                IXLCell cell = sheet.Cell(row, 1);
                 string fileName = cell.CachedValue + ".SLDDRW";
                 if (fileName == file.Name)
                 {
@@ -152,9 +148,27 @@ namespace EinhornExportIndex
                     EnumVarObj = (IEdmEnumeratorVariable8)file.GetEnumeratorVariable();
                     object VarObj = null;
 
-                    UpdateColumn(sheet, file, row, 3, "Revision", true);
-                    UpdateColumn(sheet, file, row, 4, "# Sheets", false);
+                    UpdateColumn(sheet, file, row, 2, "Revision", true);
+                    UpdateColumn(sheet, file, row, 3, "# Sheets", false);
+                    UpdateColumn(sheet, file, row, 4, "Description", true);
+                    UpdateColumn(sheet, file, row, 5, "Resp Eng", true);
+                    UpdateColumn(sheet, file, row, 6, "Drawn By", true);
 
+                    sheet.Cell(row, 7).Value = file.CurrentState.Name;
+                    sheet.Cell(row, 8).Value = file.CurrentVersion;
+
+                    UpdateColumn(sheet, file, row, 9, "Notes", true);
+                    UpdateColumn(sheet, file, row, 10, "Inspection Notes", true);
+
+                    IEdmHistory2 history = (IEdmHistory2)vault.CreateUtility(EdmUtility.EdmUtil_History);
+                    history.AddFile(file.ID);
+                    EdmHistoryItem[] ppoRethistory = null;
+
+                    history.GetHistory(ref ppoRethistory, (int)EdmHistoryType.Edmhist_FileState);
+                    sheet.Cell(row, 11).Value = ppoRethistory[0].mbsComment;
+
+                    history.GetHistory(ref ppoRethistory, (int)EdmHistoryType.Edmhist_FileVersion);
+                    sheet.Cell(row, 12).Value = ppoRethistory[0].mbsComment;
                     done = true;
                 }
             }
