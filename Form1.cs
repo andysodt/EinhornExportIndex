@@ -1,8 +1,8 @@
 using EPDM.Interop.epdm;
+using NPOI.SS.UserModel;
+using NPOI.XSSF.UserModel;
 using System.Text.RegularExpressions;
-using ClosedXML.Excel;
-using DocumentFormat.OpenXml.Spreadsheet;
-using DocumentFormat.OpenXml.Wordprocessing;
+
 
 namespace EinhornExportIndex
 {
@@ -34,27 +34,30 @@ namespace EinhornExportIndex
 
                 if (Folder != null)
                 {
-                    String Path = RootFolder + OutputFolder + Folder.Name + " INDEX.xlsx";
+                    String Path = RootFolder + OutputFolder + Folder.Name + " INDEX (EINENG).xlsx";
+                    String NewPath = RootFolder + OutputFolder + Folder.Name + " INDEX (EINENG) NEW.xlsx";
 
                     textBox1.AppendText("Workbook " + Path + Environment.NewLine);
 
-                    XLWorkbook workbook;
+                    //LockFile(NewPath);
 
-                    if (File.Exists(Path))
+                    IWorkbook workBook = null;
+
+                    using (FileStream str = new FileStream(Path, FileMode.Open, FileAccess.Read))
                     {
-                        //LockFile(Path);
-                        workbook = getWorkbook(Path);
-                        TraverseFolder(Folder, workbook);
-                        workbook.SaveAs(Path);
-                        textBox1.AppendText("Done Processing" + Environment.NewLine);
-                        //UnlockFile(Path);
-                    }
-                    else
-                    {
-                        textBox1.AppendText("Template file does not exist: " + Path + Environment.NewLine);
+                        workBook = new XSSFWorkbook(str);
+
+                        TraverseFolder(Folder, workBook);
                     }
 
+                    using (FileStream str = new FileStream(NewPath, FileMode.OpenOrCreate, FileAccess.Write))
+                    {
+                        workBook.Write(str);
+                    }
 
+                    //UnlockFile(NewPath);
+
+                    textBox1.AppendText("Done Processing" + Environment.NewLine);
                 }
             }
             catch (System.Runtime.InteropServices.COMException ex)
@@ -71,13 +74,13 @@ namespace EinhornExportIndex
         /*
          * Traverse all the subfolders in the chosen folder andupdate the matching worksheet in the workbook
          */
-        private void TraverseFolder(IEdmFolder5 CurFolder, XLWorkbook workbook)
+        private void TraverseFolder(IEdmFolder5 CurFolder, IWorkbook workBook)
         {
             try
             {
                 if (CurFolder.Name.EndsWith("-DRAWINGS") || CurFolder.Name.EndsWith("-ANALYSIS"))
                 {
-                    UpdateWorksheet(workbook, CurFolder);
+                    UpdateWorksheet(workBook, CurFolder);
                 }
 
                 //Enumerate the sub-folders in the folder
@@ -87,7 +90,7 @@ namespace EinhornExportIndex
                 {
                     IEdmFolder5 SubFolder = default(IEdmFolder5);
                     SubFolder = CurFolder.GetNextSubFolder(FolderPos);
-                    TraverseFolder(SubFolder, workbook);
+                    TraverseFolder(SubFolder, workBook);
                 }
 
             }
@@ -105,10 +108,11 @@ namespace EinhornExportIndex
          * Update the worksheet whose name that matches the folder name
          * Ignore folders that do not have a matching worksheet
          */
-        private void UpdateWorksheet(XLWorkbook workbook, IEdmFolder5 Folder)
+        private void UpdateWorksheet(IWorkbook workBook, IEdmFolder5 Folder)
         {
-            IXLWorksheet sheet = null;
-            if (workbook.TryGetWorksheet(Folder.Name, out sheet))
+            ISheet sheet = workBook.GetSheet(Folder.Name);
+
+            if (sheet != null)
             {
                 textBox1.AppendText("Updating worksheet " + Folder.Name + Environment.NewLine);
 
@@ -133,48 +137,89 @@ namespace EinhornExportIndex
             }
         }
 
-        private void UpdateRow(IXLWorksheet sheet, IEdmFile5 file)
+        private void UpdateRow(ISheet sheet, IEdmFile5 file)
         {
             Boolean done = false;
-            for (int row = 1; !done && row < sheet.RowCount(); row++)
+            for (int r = 4; !done && r < sheet.LastRowNum; r++)
             {
-                IXLCell cell = sheet.Cell(row, 1);
-                string fileName = cell.CachedValue + ".SLDDRW";
-                if (fileName == file.Name)
+                IRow row = sheet.GetRow(r);
+
+                ICell cell = row.GetCell(0);
+                if (cell != null)
                 {
-                    textBox1.AppendText("Row " + Convert.ToString(row) + " matched " + fileName + Environment.NewLine);
+                    string fileName = cell.StringCellValue + ".SLDDRW";
 
-                    IEdmEnumeratorVariable8 EnumVarObj = default(IEdmEnumeratorVariable8);
-                    EnumVarObj = (IEdmEnumeratorVariable8)file.GetEnumeratorVariable();
-                    object VarObj = null;
+                    if (fileName == file.Name)
+                    {
+                        textBox1.AppendText("matched " + fileName + Environment.NewLine);
 
-                    UpdateColumn(sheet, file, row, 2, "Revision", true);
-                    UpdateColumn(sheet, file, row, 3, "# Sheets", false);
-                    UpdateColumn(sheet, file, row, 4, "Description", true);
-                    UpdateColumn(sheet, file, row, 5, "Resp Eng", true);
-                    UpdateColumn(sheet, file, row, 6, "Drawn By", true);
+                        IEdmEnumeratorVariable8 EnumVarObj = default(IEdmEnumeratorVariable8);
+                        EnumVarObj = (IEdmEnumeratorVariable8)file.GetEnumeratorVariable();
+                        object VarObj = null;
 
-                    sheet.Cell(row, 7).Value = file.CurrentState.Name;
-                    sheet.Cell(row, 8).Value = file.CurrentVersion;
+                        if (EnumVarObj.GetVar("Revision", "@", out VarObj) == true)
+                        {
+                            cell = row.GetCell(1);
+                            cell.SetCellValue(Convert.ToString(VarObj));
+                        }
 
-                    UpdateColumn(sheet, file, row, 9, "Notes", true);
-                    UpdateColumn(sheet, file, row, 10, "Inspection Notes", true);
+                        if (EnumVarObj.GetVar("# Sheets", "@", out VarObj) == true)
+                        {
+                            cell = row.GetCell(2);
+                            cell.SetCellValue(Convert.ToInt64(VarObj));
+                        }
 
-                    IEdmHistory2 history = (IEdmHistory2)vault.CreateUtility(EdmUtility.EdmUtil_History);
-                    history.AddFile(file.ID);
-                    EdmHistoryItem[] ppoRethistory = null;
+                        if (EnumVarObj.GetVar("Description", "@", out VarObj) == true)
+                        {
+                            cell = row.GetCell(6);
+                            cell.SetCellValue(Convert.ToString(VarObj));
+                        }
 
-                    history.GetHistory(ref ppoRethistory, (int)EdmHistoryType.Edmhist_FileState);
-                    sheet.Cell(row, 11).Value = ppoRethistory[0].mbsComment;
+                        if (EnumVarObj.GetVar("Drawn By", "@", out VarObj) == true)
+                        {
+                            cell = row.GetCell(9);
+                            cell.SetCellValue(Convert.ToString(VarObj));
+                        }
 
-                    history.GetHistory(ref ppoRethistory, (int)EdmHistoryType.Edmhist_FileVersion);
-                    sheet.Cell(row, 12).Value = ppoRethistory[0].mbsComment;
-                    done = true;
+                        if (EnumVarObj.GetVar("Resp Eng", "@", out VarObj) == true)
+                        {
+                            cell = row.GetCell(10);
+                            cell.SetCellValue(Convert.ToString(VarObj));
+                        }
+
+                        //sheet.GetRow(row).GetCell(8).SetCellValue(file.CurrentVersion);
+                        //sheet.GetRow(row).GetCell(11).SetCellValue(file.CurrentState.Name);
+
+                        if (EnumVarObj.GetVar("Inspection Notes", "@", out VarObj) == true)
+                        {
+                            cell = row.GetCell(20);
+                            cell.SetCellValue("Inspection Notes " + Convert.ToString(VarObj));
+                        }
+
+                        if (EnumVarObj.GetVar("Notes", "@", out VarObj) == true)
+                        {
+                            cell = row.GetCell(21);
+                            cell.SetCellValue("Notes " + Convert.ToString(VarObj));
+                        }
+
+
+                        IEdmHistory2 history = (IEdmHistory2)vault.CreateUtility(EdmUtility.EdmUtil_History);
+                        history.AddFile(file.ID);
+                        EdmHistoryItem[] ppoRethistory = null;
+
+                        history.GetHistory(ref ppoRethistory, (int)EdmHistoryType.Edmhist_FileState);
+                        //sheet.GetRow(row).GetCell(11).SetCellValue(ppoRethistory[0].mbsComment);
+
+                        history.GetHistory(ref ppoRethistory, (int)EdmHistoryType.Edmhist_FileVersion);
+                        //sheet.GetRow(row).GetCell(12).SetCellValue(ppoRethistory[0].mbsComment);
+
+                        done = true;
+                    }
                 }
             }
         }
 
-        private void UpdateColumn(IXLWorksheet sheet, IEdmFile5 file, int row, int column, String name, Boolean isString)
+        private void UpdateCell(ISheet sheet, IEdmFile5 file, ICell cell, String name, Boolean isString)
         {
             IEdmEnumeratorVariable8 EnumVarObj = default(IEdmEnumeratorVariable8);
             EnumVarObj = (IEdmEnumeratorVariable8)file.GetEnumeratorVariable();
@@ -184,14 +229,14 @@ namespace EinhornExportIndex
             {
                 if (isString)
                 {
-                    sheet.Cell(row, column).Value = Convert.ToString(VarObj);
+                    cell.SetCellValue(Convert.ToString(VarObj));
                 }
                 else
                 {
-                    sheet.Cell(row, column).Value = Convert.ToInt64(VarObj);
+                    cell.SetCellValue(Convert.ToInt64(VarObj));
                 }
 
-                textBox1.AppendText("Row " + row + " Column " + column + " set to " + VarObj.ToString() + Environment.NewLine);
+                //textBox1.AppendText("Row " + row + " Column " + column + " set to " + VarObj.ToString() + Environment.NewLine);
             }
         }
 
@@ -231,20 +276,7 @@ namespace EinhornExportIndex
             return altered;
         }
 
-        private XLWorkbook getWorkbook(String Path)
-        {
-            var workbook = new XLWorkbook(Path);
-            textBox1.AppendText("Loaded workbook " + Path + Environment.NewLine);
-            return workbook;
-        }
-        private XLWorkbook newWorkbook(String Path)
-        {
-            XLWorkbook workbook = new XLWorkbook();
-            textBox1.AppendText("Created workbook " + Path + Environment.NewLine);
-            return workbook;
-        }
-
-        /*
+        /* old code
         private void AddVarColumn(XLWorkbook workbook, IEdmEnumeratorVariable8 EnumVarObj, String Name)
         {
             object VarObj = null;
