@@ -1,6 +1,8 @@
 using EPDM.Interop.epdm;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
+using System.Linq;
+using System.Security.Policy;
 using System.Text.RegularExpressions;
 
 
@@ -139,13 +141,20 @@ namespace EinhornExportIndex
 
         private void UpdateRow(ISheet sheet, IEdmFile5 file)
         {
-            Boolean done = false;
-            for (int r = 4; !done && r < sheet.LastRowNum; r++)
-            {
-                IRow row = sheet.GetRow(r);
+            int fileNameColumn = FindColumn(sheet, "Drawing #");
+            int revisionColumn = FindColumn(sheet, "Rev");
+            int numberOfSheetsColumn = FindColumn(sheet, "# Sht");
+            int descriptionColumn = FindColumn(sheet, "Title");
+            int drawnByColumn = FindColumn(sheet, "DESIGNER");
+            int reviewerColumn = FindColumn(sheet, "REVIEWER");
+            int inspectionNotesColumn = FindColumn(sheet, "Inspection Notes");
+            int notesColumn = FindColumn(sheet, "Notes");
 
-                ICell cell = row.GetCell(0);
-                if (cell != null)
+            foreach (IRow row in sheet)
+            {
+                ICell cell = row.GetCell(fileNameColumn);
+
+                if (cell != null) 
                 {
                     string fileName = cell.StringCellValue + ".SLDDRW";
 
@@ -159,31 +168,31 @@ namespace EinhornExportIndex
 
                         if (EnumVarObj.GetVar("Revision", "@", out VarObj) == true)
                         {
-                            cell = row.GetCell(1);
+                            cell = row.GetCell(revisionColumn);
                             cell.SetCellValue(Convert.ToString(VarObj));
                         }
 
                         if (EnumVarObj.GetVar("# Sheets", "@", out VarObj) == true)
                         {
-                            cell = row.GetCell(2);
+                            cell = row.GetCell(numberOfSheetsColumn);
                             cell.SetCellValue(Convert.ToInt64(VarObj));
                         }
 
                         if (EnumVarObj.GetVar("Description", "@", out VarObj) == true)
                         {
-                            cell = row.GetCell(6);
+                            cell = row.GetCell(descriptionColumn);
                             cell.SetCellValue(Convert.ToString(VarObj));
                         }
 
                         if (EnumVarObj.GetVar("Drawn By", "@", out VarObj) == true)
                         {
-                            cell = row.GetCell(9);
+                            cell = row.GetCell(drawnByColumn);
                             cell.SetCellValue(Convert.ToString(VarObj));
                         }
 
                         if (EnumVarObj.GetVar("Resp Eng", "@", out VarObj) == true)
                         {
-                            cell = row.GetCell(10);
+                            cell = row.GetCell(reviewerColumn);
                             cell.SetCellValue(Convert.ToString(VarObj));
                         }
 
@@ -192,14 +201,14 @@ namespace EinhornExportIndex
 
                         if (EnumVarObj.GetVar("Inspection Notes", "@", out VarObj) == true)
                         {
-                            cell = row.GetCell(20);
-                            cell.SetCellValue("Inspection Notes " + Convert.ToString(VarObj));
+                            cell = row.GetCell(inspectionNotesColumn);
+                            cell.SetCellValue(Convert.ToString(VarObj));
                         }
 
                         if (EnumVarObj.GetVar("Notes", "@", out VarObj) == true)
                         {
-                            cell = row.GetCell(21);
-                            cell.SetCellValue("Notes " + Convert.ToString(VarObj));
+                            cell = row.GetCell(notesColumn);
+                            cell.SetCellValue(Convert.ToString(VarObj));
                         }
 
 
@@ -212,12 +221,25 @@ namespace EinhornExportIndex
 
                         history.GetHistory(ref ppoRethistory, (int)EdmHistoryType.Edmhist_FileVersion);
                         //sheet.GetRow(row).GetCell(12).SetCellValue(ppoRethistory[0].mbsComment);
-
-                        done = true;
                     }
                 }
             }
         }
+
+        private int FindColumn(ISheet sheet, String title)
+        {
+            IRow row = sheet.GetRow(2);
+            foreach (ICell cell in row)
+            {
+                if (cell.StringCellValue == title)
+                {
+                    return cell.ColumnIndex;
+                }
+            }
+
+            return -1; // not found
+        }
+
 
         private void UpdateCell(ISheet sheet, IEdmFile5 file, ICell cell, String name, Boolean isString)
         {
