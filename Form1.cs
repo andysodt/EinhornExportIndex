@@ -1,6 +1,8 @@
 using EPDM.Interop.epdm;
+using NPOI.SS.Formula.Functions;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
+using System.Collections;
 using System.Linq;
 using System.Security.Policy;
 using System.Text.RegularExpressions;
@@ -12,6 +14,7 @@ namespace EinhornExportIndex
     {
         String RootFolder = "C:\\Einhorn PDM\\";
         String OutputFolder = "ENGINEERING DATA\\PDM INDEX OUTPUT\\";
+        Dictionary<string, string> statusConversion = new Dictionary<string, string>();
 
         /**
          * this stores all the column numbers based on their titles in the title row
@@ -29,6 +32,7 @@ namespace EinhornExportIndex
                 reviewerColumn = FindColumn(sheet, "REVIEWER");
                 inspectionNotesColumn = FindColumn(sheet, "Inspection Notes");
                 notesColumn = FindColumn(sheet, "Notes");
+                stateColumn = FindColumn(sheet, "Status (CMC, NS, DC, RC, CO)");
             }
             public int fileNameColumn { get; set; }
             public int revisionColumn { get; set; }
@@ -38,6 +42,7 @@ namespace EinhornExportIndex
             public int reviewerColumn { get; set; }
             public int inspectionNotesColumn { get; set; }
             public int notesColumn { get; set; }
+            public int stateColumn { get; set; }
             private int FindColumn(ISheet sheet, String title)
             {
                 IRow row = sheet.GetRow(TitleRow);
@@ -51,12 +56,31 @@ namespace EinhornExportIndex
 
                 return -1; // not found
             }
+
         }
 
         IEdmVault7 vault;
         public Form1()
         {
             InitializeComponent();
+
+            // Set the status column conversion table
+            statusConversion.Add("NULL", "CREATE");
+            statusConversion.Add("CREATE", "CREATE");
+            statusConversion.Add("CONCEPT MODEL COMPLETE", "CMC");
+            statusConversion.Add("REVIEW", "REVIEW");
+            statusConversion.Add("REVISE", "REVIEW");
+            statusConversion.Add("APPROVE", "APPROVE");
+            statusConversion.Add("RE-REVISE", "APPROVE");
+            statusConversion.Add("PENDING EXWC REVIEW", "SMT EXWC");
+            statusConversion.Add("RELEASED", "RELEASED");
+            statusConversion.Add("CREATE REV", "CREATE");
+            statusConversion.Add("CONCEPT MODEL COMPLETE REV", "CMC");
+            statusConversion.Add("REVIEW REV", "REVIEW");
+            statusConversion.Add("REVISE REV", "REVIEW");
+            statusConversion.Add("APPROVE REV", "APPROVE");
+            statusConversion.Add("RE-REVISE REV", "APPROVE");
+            statusConversion.Add("PENDING EXWC REVIEW REV", "SMT EXWC");
         }
 
         void EinhornExportIndex_Load(System.Object sender, System.EventArgs e)
@@ -161,9 +185,9 @@ namespace EinhornExportIndex
 
                 textBox1.AppendText("Updating worksheet " + Folder.Name + Environment.NewLine);
 
-                IEdmPos5 FilePos = default(IEdmPos5);
+                IEdmPos5? FilePos = default;
                 FilePos = Folder.GetFirstFilePosition();
-                IEdmFile5 file = default(IEdmFile5);
+                IEdmFile5? file = default;
 
                 // Instantiate the regular expression object to match file names
                 Regex r = new Regex("^[A-Za-z][A-Za-z]-\\d\\d-[A-Za-z]\\d\\d\\d\\..*$");
@@ -244,20 +268,15 @@ namespace EinhornExportIndex
                             cell.SetCellValue(Convert.ToString(VarObj));
                         }
 
-                        /* perhaps not needed
-                        IEdmHistory2 history = (IEdmHistory2)vault.CreateUtility(EdmUtility.EdmUtil_History);
-                        history.AddFile(file.ID);
-                        EdmHistoryItem[] ppoRethistory = null;
-
-                        history.GetHistory(ref ppoRethistory, (int)EdmHistoryType.Edmhist_FileState);
-                        //sheet.GetRow(row).GetCell(11).SetCellValue(ppoRethistory[0].mbsComment);
-
-                        history.GetHistory(ref ppoRethistory, (int)EdmHistoryType.Edmhist_FileVersion);
-                        //sheet.GetRow(row).GetCell(12).SetCellValue(ppoRethistory[0].mbsComment);
-
-                        //sheet.GetRow(row).GetCell(8).SetCellValue(file.CurrentVersion);
-                        //sheet.GetRow(row).GetCell(11).SetCellValue(file.CurrentState.Name);
-                        */
+                        // get the state and convert it.
+                        cell = row.GetCell(columnNumbers.stateColumn);
+                        String status = file.CurrentState.Name;
+                        status = statusConversion[status];
+                        if (status == null)
+                        {
+                            status = statusConversion["NULL"];
+                        }
+                        cell.SetCellValue(status);
                     }
                 }
             }
