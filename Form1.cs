@@ -152,7 +152,7 @@ namespace EinhornExportIndex
 
                     textBox1.AppendText("Unlocking " + Path + Environment.NewLine);
 
-                    //UnlockFile(Path);
+                    UnlockFile(Path);
 
                     textBox1.AppendText("Done Processing" + Environment.NewLine);
                 }
