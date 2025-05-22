@@ -1,11 +1,7 @@
+using BitMiracle.LibTiff.Classic;
 using EPDM.Interop.epdm;
-using NPOI.HSSF.UserModel;
-using NPOI.SS.Formula.Functions;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
-using System.Collections;
-using System.Linq;
-using System.Security.Policy;
 using System.Text.RegularExpressions;
 
 
@@ -14,11 +10,8 @@ namespace EinhornExportIndex
     public partial class Form1 : Form
     {
         String RootFolder = "C:\\Einhorn PDM\\";
-        //String RootFolder = "C:\\Users\\morib\\";
         String OutputFolder = "ENGINEERING DATA\\PDM INDEX OUTPUT\\";
-        //String OutputFolder = "";
         String Host = "Einhorn PDM";
-        //String Host = "TEST;
         Dictionary<string, string> statusConversion = new Dictionary<string, string>();
 
         /**
@@ -29,7 +22,7 @@ namespace EinhornExportIndex
             const int TitleRow = 2; // this should be the row with all the column titles
             public void UpdateColumns(ISheet sheet)
             {
-                fileNameColumn = FindColumn(sheet, "Drawing #");
+                fileNameColumn = FindColumn(sheet, "Document #");
                 revisionColumn = FindColumn(sheet, "Rev");
                 numberOfSheetsColumn = FindColumn(sheet, "# Sht");
                 descriptionColumn = FindColumn(sheet, "Title");
@@ -37,7 +30,7 @@ namespace EinhornExportIndex
                 reviewerColumn = FindColumn(sheet, "REVIEWER");
                 inspectionNotesColumn = FindColumn(sheet, "Inspection Notes");
                 notesColumn = FindColumn(sheet, "Notes");
-                stateColumn = FindColumn(sheet, "Status (CMC, NS, DC, RC, CO)");
+                stateColumn = FindColumn(sheet, "Status");
             }
             public int fileNameColumn { get; set; }
             public int revisionColumn { get; set; }
@@ -62,7 +55,7 @@ namespace EinhornExportIndex
                 return -1; // not found
             }
 
-            public ICell GetCell(IRow row, int columnIndex)
+            public ICell? GetCell(IRow row, int columnIndex)
             {
                 if (columnIndex != -1)
                 {
@@ -76,7 +69,7 @@ namespace EinhornExportIndex
 
         }
 
-        IEdmVault7 vault;
+        IEdmVault7? vault;
         public Form1()
         {
             InitializeComponent();
@@ -125,7 +118,7 @@ namespace EinhornExportIndex
 
                     LockFile(Path);
 
-                    IWorkbook workBook = null;
+                    IWorkbook workBook;
 
                     using (FileStream str = new FileStream(Path, FileMode.Open, FileAccess.Read))
                     {
@@ -159,11 +152,11 @@ namespace EinhornExportIndex
             }
             catch (System.Runtime.InteropServices.COMException ex)
             {
-                MessageBox.Show("HRESULT = 0x" + ex.ErrorCode.ToString("X") + " " + ex.Message);
+                textBox1.AppendText("HRESULT = 0x" + ex.ErrorCode.ToString("X") + " " + ex.Message);
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message);
+                textBox1.AppendText(ex.Message);
             }
         }
 
@@ -181,11 +174,11 @@ namespace EinhornExportIndex
                 }
 
                 //Enumerate the sub-folders in the folder
-                IEdmPos5 FolderPos = default(IEdmPos5);
+                IEdmPos5 FolderPos;
                 FolderPos = CurFolder.GetFirstSubFolderPosition();
                 while (!FolderPos.IsNull)
                 {
-                    IEdmFolder5 SubFolder = default(IEdmFolder5);
+                    IEdmFolder5 SubFolder;
                     SubFolder = CurFolder.GetNextSubFolder(FolderPos);
                     TraverseFolder(SubFolder, workBook);
                 }
@@ -193,11 +186,11 @@ namespace EinhornExportIndex
             }
             catch (System.Runtime.InteropServices.COMException ex)
             {
-                MessageBox.Show("HRESULT = 0x" + ex.ErrorCode.ToString("X") + ex.Message);
+                textBox1.AppendText("HRESULT = 0x" + ex.ErrorCode.ToString("X") + ex.Message);
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message);
+                textBox1.AppendText(ex.Message);
             }
         }
 
@@ -243,19 +236,20 @@ namespace EinhornExportIndex
         {
             foreach (IRow row in sheet)
             {
-                ICell cell = columnNumbers.GetCell(row, columnNumbers.fileNameColumn);
+                ICell? cell = columnNumbers.GetCell(row, columnNumbers.fileNameColumn);
 
                 if (cell != null && cell.CellType == CellType.String)
                 {
-                    string fileName = cell.StringCellValue + ".SLDDRW";
+                    // If the file name matches this pattern with the first 11 chars, open it.  Like TX-27-D524.
+                    string fileName = cell.StringCellValue + ".";
 
-                    if (fileName == file.Name)
+                    if (file.Name.Contains(fileName))
                     {
                         textBox1.AppendText("matched " + fileName + Environment.NewLine);
 
-                        IEdmEnumeratorVariable8 EnumVarObj = default(IEdmEnumeratorVariable8);
+                        IEdmEnumeratorVariable8 EnumVarObj;
                         EnumVarObj = (IEdmEnumeratorVariable8)file.GetEnumeratorVariable();
-                        object VarObj = null;
+                        object VarObj;
 
                         if (EnumVarObj.GetVar("Revision", "@", out VarObj) == true)
                         {
@@ -317,6 +311,7 @@ namespace EinhornExportIndex
                             }
                         }
 
+                        /*
                         if (EnumVarObj.GetVar("Inspection Notes", "@", out VarObj) == true)
                         {
                             cell = columnNumbers.GetCell(row, columnNumbers.inspectionNotesColumn);
@@ -327,7 +322,9 @@ namespace EinhornExportIndex
                                 cell.SetCellValue(Convert.ToString(VarObj));
                             }
                         }
+                        */
 
+                        /*
                         if (EnumVarObj.GetVar("Notes", "@", out VarObj) == true)
                         {
                             cell = columnNumbers.GetCell(row, columnNumbers.notesColumn);
@@ -338,6 +335,7 @@ namespace EinhornExportIndex
                                 cell.SetCellValue(Convert.ToString(VarObj));
                             }
                         }
+                        */
 
                         // get the state and convert it
                         cell = columnNumbers.GetCell(row, columnNumbers.stateColumn);
@@ -359,43 +357,24 @@ namespace EinhornExportIndex
             }
         }
 
-
-
-
-        private void UpdateCell(ISheet sheet, IEdmFile5 file, ICell cell, String name, Boolean isString)
-        {
-            IEdmEnumeratorVariable8 EnumVarObj = default(IEdmEnumeratorVariable8);
-            EnumVarObj = (IEdmEnumeratorVariable8)file.GetEnumeratorVariable();
-            object VarObj = null;
-
-            if (EnumVarObj.GetVar(name, "@", out VarObj) == true)
-            {
-                if (isString)
-                {
-                    cell.SetCellValue(Convert.ToString(VarObj));
-                }
-                else
-                {
-                    cell.SetCellValue(Convert.ToInt64(VarObj));
-                }
-
-                //textBox1.AppendText("Row " + row + " Column " + column + " set to " + VarObj.ToString() + Environment.NewLine);
-            }
-        }
-
         private Boolean LockFile(String path)
         {
             Boolean altered = false;
-            IEdmFile5 file = default(IEdmFile5);
-            IEdmFolder5 folder = null;
-            file = this.vault.GetFileFromPath(path, out folder);
-
-            if (file != null && !file.IsLocked)
+            IEdmFile5? file;
+            IEdmFolder5? folder = null;
+            if (vault != null)
             {
-                altered = true;
-                file.LockFile(folder.ID, this.Handle.ToInt32());
+                file = vault.GetFileFromPath(path, out folder);
 
-                textBox1.AppendText("Locked file " + path + Environment.NewLine);
+                if (file != null && !file.IsLocked)
+                {
+                    altered = true;
+                    file.LockFile(folder.ID, this.Handle.ToInt32());
+
+                    textBox1.AppendText("Locked file " + path + Environment.NewLine);
+                }
+
+                return altered;
             }
 
             return altered;
@@ -404,16 +383,19 @@ namespace EinhornExportIndex
         private Boolean UnlockFile(String path)
         {
             Boolean altered = false;
-            IEdmFile5 file = default(IEdmFile5);
-            IEdmFolder5 folder = null;
-            file = this.vault.GetFileFromPath(path, out folder);
-
-            if (file != null && file.IsLocked)
+            IEdmFile5? file = default;
+            IEdmFolder5 folder;
+            if (vault != null)
             {
-                altered = true;
-                file.UnlockFile(folder.ID, "update");
+                file = vault.GetFileFromPath(path, out folder);
 
-                textBox1.AppendText("Unlocked file " + path + Environment.NewLine);
+                if (file != null && file.IsLocked)
+                {
+                    altered = true;
+                    file.UnlockFile(folder.ID, "update");
+
+                    textBox1.AppendText("Unlocked file " + path + Environment.NewLine);
+                }
             }
 
             return altered;
