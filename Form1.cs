@@ -1,4 +1,3 @@
-using BitMiracle.LibTiff.Classic;
 using EPDM.Interop.epdm;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
