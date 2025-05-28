@@ -8,9 +8,9 @@ namespace EinhornExportIndex
 {
     public partial class Form1 : Form
     {
-        String RootFolder = "C:\\Einhorn PDM\\";
-        String OutputFolder = "ENGINEERING DATA\\PDM INDEX OUTPUT\\";
-        String Host = "Einhorn PDM";
+        //String Host = "Einhorn PDM";
+        String Host = "TEST";
+        String OutputFolder = "\\ENGINEERING DATA\\PDM INDEX OUTPUT\\";
         Dictionary<string, string> statusConversion = new Dictionary<string, string>();
 
         /**
@@ -27,6 +27,7 @@ namespace EinhornExportIndex
                 descriptionColumn = FindColumn(sheet, "Title");
                 drawnByColumn = FindColumn(sheet, "DESIGNER");
                 reviewerColumn = FindColumn(sheet, "REVIEWER");
+                reviewerColumn = FindColumn(sheet, "APPROVER");
                 inspectionNotesColumn = FindColumn(sheet, "Inspection Notes");
                 notesColumn = FindColumn(sheet, "Notes");
                 stateColumn = FindColumn(sheet, "Status");
@@ -37,6 +38,7 @@ namespace EinhornExportIndex
             public int descriptionColumn { get; set; }
             public int drawnByColumn { get; set; }
             public int reviewerColumn { get; set; }
+            public int approverColumn { get; set; }
             public int inspectionNotesColumn { get; set; }
             public int notesColumn { get; set; }
             public int stateColumn { get; set; }
@@ -109,7 +111,7 @@ namespace EinhornExportIndex
 
                 if (Folder != null)
                 {
-                    String Path = RootFolder + OutputFolder + Folder.Name + " DWG INDEX (EINENG).xlsx";
+                    String Path = "C:\\" + Host + OutputFolder + Folder.Name + " DWG INDEX (EINENG).xlsx";
 
                     textBox1.AppendText("Workbook " + Path + Environment.NewLine);
 
@@ -305,6 +307,18 @@ namespace EinhornExportIndex
                             if (cell != null)
                             {
                                 textBox1.AppendText("Updating Resp Eng " + Environment.NewLine);
+
+                                cell.SetCellValue(Convert.ToString(VarObj));
+                            }
+                        }                        
+                        
+                        if (EnumVarObj.GetVar("Approved By", "@", out VarObj) == true)
+                        {
+
+                            cell = columnNumbers.GetCell(row, columnNumbers.approverColumn);
+                            if (cell != null)
+                            {
+                                textBox1.AppendText("Updating Approved By " + Environment.NewLine);
 
                                 cell.SetCellValue(Convert.ToString(VarObj));
                             }

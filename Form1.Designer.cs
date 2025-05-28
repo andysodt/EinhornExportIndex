@@ -29,56 +29,56 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.CreateIndex = new System.Windows.Forms.Button();
-            this.label1 = new System.Windows.Forms.Label();
-            this.textBox1 = new System.Windows.Forms.TextBox();
-            this.SuspendLayout();
+            CreateIndex = new Button();
+            label1 = new Label();
+            textBox1 = new TextBox();
+            SuspendLayout();
             // 
             // CreateIndex
             // 
-            this.CreateIndex.Location = new System.Drawing.Point(13, 12);
-            this.CreateIndex.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            this.CreateIndex.Name = "CreateIndex";
-            this.CreateIndex.Size = new System.Drawing.Size(278, 51);
-            this.CreateIndex.TabIndex = 2;
-            this.CreateIndex.Text = "Click to choose project folder.";
-            this.CreateIndex.UseVisualStyleBackColor = true;
-            this.CreateIndex.Click += new System.EventHandler(this.EinhornExportIndex_Click);
+            CreateIndex.Location = new Point(19, 20);
+            CreateIndex.Margin = new Padding(6, 5, 6, 5);
+            CreateIndex.Name = "CreateIndex";
+            CreateIndex.Size = new Size(397, 85);
+            CreateIndex.TabIndex = 2;
+            CreateIndex.Text = "Click to choose project folder.";
+            CreateIndex.UseVisualStyleBackColor = true;
+            CreateIndex.Click += EinhornExportIndex_Click;
             // 
             // label1
             // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(14, 96);
-            this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(55, 15);
-            this.label1.TabIndex = 3;
-            this.label1.Text = "Progress:";
+            label1.AutoSize = true;
+            label1.Location = new Point(20, 160);
+            label1.Margin = new Padding(6, 0, 6, 0);
+            label1.Name = "label1";
+            label1.Size = new Size(85, 25);
+            label1.TabIndex = 3;
+            label1.Text = "Progress:";
             // 
             // textBox1
             // 
-            this.textBox1.Location = new System.Drawing.Point(14, 114);
-            this.textBox1.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            this.textBox1.Multiline = true;
-            this.textBox1.Name = "textBox1";
-            this.textBox1.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.textBox1.Size = new System.Drawing.Size(277, 176);
-            this.textBox1.TabIndex = 6;
+            textBox1.Location = new Point(22, 190);
+            textBox1.Margin = new Padding(6, 5, 6, 5);
+            textBox1.Multiline = true;
+            textBox1.Name = "textBox1";
+            textBox1.ScrollBars = ScrollBars.Both;
+            textBox1.Size = new Size(1083, 654);
+            textBox1.TabIndex = 6;
             // 
             // Form1
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(304, 302);
-            this.Controls.Add(this.textBox1);
-            this.Controls.Add(this.label1);
-            this.Controls.Add(this.CreateIndex);
-            this.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            this.Name = "Form1";
-            this.Text = "Update Index Spreadsheet";
-            this.Load += new System.EventHandler(this.EinhornExportIndex_Load);
-            this.ResumeLayout(false);
-            this.PerformLayout();
+            AutoScaleDimensions = new SizeF(10F, 25F);
+            AutoScaleMode = AutoScaleMode.Font;
+            ClientSize = new Size(1135, 871);
+            Controls.Add(textBox1);
+            Controls.Add(label1);
+            Controls.Add(CreateIndex);
+            Margin = new Padding(6, 5, 6, 5);
+            Name = "Form1";
+            Text = "Update Index Spreadsheet";
+            Load += EinhornExportIndex_Load;
+            ResumeLayout(false);
+            PerformLayout();
 
         }
 
