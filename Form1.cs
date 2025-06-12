@@ -1,9 +1,49 @@
 using EPDM.Interop.epdm;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
-using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
 
+/**
+
+The rules for the spreadsheet are:
+
+1) folder names in the project must match a sheet name in the spread sheet.
+
+2) columns in the sheet must be titled one of these for the program to update from PDM:
+
+                "Document #";
+                "Rev"
+                "# Sht"
+                "Title"
+                "DESIGNER"
+                "REVIEWER"
+                "APPROVER"
+                "Inspection Notes"
+                "Notes"
+                "Status"
+
+3) To convert a status the PDM values must match one of these, otherwise it stays the same.  It matches the first value and converts to the second.
+
+            "NULL", "CREATE"
+            "CREATE", "CREATE"
+            "CONCEPT MODEL COMPLETE"
+            "REVIEW", "REVIEW"
+            "REVISE", "REVIEW"
+            "APPROVE", "APPROVE"
+            "RE-REVISE", "APPROVE"
+            "PENDING EXWC REVIEW", "SMT EXWC"
+            "RELEASED", "RELEASED"
+            "CREATE REV", "CREATE"
+            "CONCEPT MODEL COMPLETE REV", "CMC"
+            "REVIEW REV", "REVIEW"
+            "REVISE REV", "REVIEW"
+            "APPROVE REV", "APPROVE"
+            "RE-REVISE REV", "APPROVE"
+            "PENDING EXWC REVIEW REV", "SMT EXWC"
+
+4) the spreadsheet name must match the project folder name, apart from the DWG INDEX (EINENG).xlsx part.
+
+*/
 
 namespace EinhornExportIndex
 {
@@ -149,6 +189,7 @@ namespace EinhornExportIndex
 
                     UnlockFile(Path);
 
+                    textBox1.AppendText(Environment.NewLine);
                     textBox1.AppendText("Done Processing" + Environment.NewLine);
                 }
             }
@@ -210,7 +251,7 @@ namespace EinhornExportIndex
                 columnNumbers.UpdateColumns(sheet);
 
                 textBox1.AppendText(Environment.NewLine);
-                textBox1.AppendText("Updating worksheet " + Folder.Name + Environment.NewLine );
+                textBox1.AppendText("Updating worksheet " + Folder.Name + Environment.NewLine);
 
                 IEdmPos5? FilePos = default;
                 FilePos = Folder.GetFirstFilePosition();
@@ -234,12 +275,26 @@ namespace EinhornExportIndex
                     }
                 }
 
-                foreach (var fileName in newFiles)
-                {
-                    textBox1.AppendText("new file " + fileName + Environment.NewLine);
-                }
+                AddNewFiles(newFiles, sheet, columnNumbers);
+
+
             }
         }
+
+
+        /**
+         * add new files to this sheet
+         */
+        private void AddNewFiles(List<string> newFiles, ISheet sheet, ColumnNumbers columnNumbers)
+        {
+            textBox1.AppendText(Environment.NewLine);
+
+            foreach (var fileName in newFiles)
+            {
+                textBox1.AppendText("new file " + fileName + Environment.NewLine);
+            }
+        }
+
 
         /**
          * update rows that match a drawing file 
