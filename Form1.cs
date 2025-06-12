@@ -1,4 +1,6 @@
 using EPDM.Interop.epdm;
+using NPOI.HPSF;
+using NPOI.SS.Formula.Functions;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 using System.Text.RegularExpressions;
@@ -427,6 +429,105 @@ namespace EinhornExportIndex
             return false; // Did not find
         }
 
+        private void UpdateColumns(ISheet sheet, IRow row, ColumnNumbers columnNumbers, IEdmFile5 file, string fileName)
+        {
+            textBox1.AppendText("matched " + fileName + Environment.NewLine);
+
+            IEdmEnumeratorVariable8 EnumVarObj;
+            EnumVarObj = (IEdmEnumeratorVariable8)file.GetEnumeratorVariable();
+            object VarObj;
+            ICell? cell = null;
+
+            if (EnumVarObj.GetVar("Revision", "@", out VarObj) == true)
+            {
+                cell = columnNumbers.GetCell(row, columnNumbers.revisionColumn);
+                if (cell != null)
+                {
+                    textBox1.AppendText("Updating Revision " + Environment.NewLine);
+
+                    cell.SetCellValue(Convert.ToString(VarObj));
+                }
+            }
+
+            if (EnumVarObj.GetVar("# Sheets", "@", out VarObj) == true)
+            {
+                cell = columnNumbers.GetCell(row, columnNumbers.numberOfSheetsColumn);
+                if (cell != null)
+                {
+                    textBox1.AppendText("Updating # Sheets " + Environment.NewLine);
+
+                    cell.SetCellValue(Convert.ToInt64(VarObj));
+                }
+            }
+
+            if (EnumVarObj.GetVar("Description", "@", out VarObj) == true)
+            {
+                cell = columnNumbers.GetCell(row, columnNumbers.descriptionColumn);
+                if (cell != null)
+                {
+                    textBox1.AppendText("Updating Description " + Environment.NewLine);
+
+                    cell.SetCellValue(Convert.ToString(VarObj));
+                }
+            }
+
+            if (EnumVarObj.GetVar("Drawn By", "@", out VarObj) == true)
+            {
+                cell = columnNumbers.GetCell(row, columnNumbers.drawnByColumn);
+                if (cell != null)
+                {
+                    textBox1.AppendText("Updating Drawn By " + Environment.NewLine);
+
+                    cell.SetCellValue(Convert.ToString(VarObj));
+                }
+            }
+
+            if (EnumVarObj.GetVar("Resp Eng", "@", out VarObj) == true)
+            {
+                cell = columnNumbers.GetCell(row, columnNumbers.reviewerColumn);
+                if (cell != null)
+                {
+                    textBox1.AppendText("Updating Resp Eng " + Environment.NewLine);
+
+                    cell.SetCellValue(Convert.ToString(VarObj));
+                }
+            }
+
+            if (EnumVarObj.GetVar("Approved By", "@", out VarObj) == true)
+            {
+                cell = columnNumbers.GetCell(row, columnNumbers.approverColumn);
+                if (cell != null)
+                {
+                    textBox1.AppendText("Updating Approved By " + Environment.NewLine);
+
+                    cell.SetCellValue(Convert.ToString(VarObj));
+                }
+            }
+
+            // get the state and convert it
+            cell = columnNumbers.GetCell(row, columnNumbers.stateColumn);
+            if (cell != null)
+            {
+                String status = file.CurrentState.Name;
+                try
+                {
+                    status = statusConversion[status];
+                    if (status == null)
+                    {
+                        status = statusConversion["NULL"];
+                    }
+
+                    textBox1.AppendText("Updating Status " + Environment.NewLine);
+
+                    cell.SetCellValue(status);
+                }
+                catch (Exception)
+                {
+                    textBox1.AppendText("No conversion for status " + status + Environment.NewLine);
+                }
+
+            }
+        }
         private Boolean LockFile(String path)
         {
             Boolean altered = false;
