@@ -1,6 +1,7 @@
 using EPDM.Interop.epdm;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
+using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
 
 
@@ -208,32 +209,42 @@ namespace EinhornExportIndex
                 ColumnNumbers columnNumbers = new ColumnNumbers();
                 columnNumbers.UpdateColumns(sheet);
 
-                textBox1.AppendText("Updating worksheet " + Folder.Name + Environment.NewLine);
+                textBox1.AppendText(Environment.NewLine);
+                textBox1.AppendText("Updating worksheet " + Folder.Name + Environment.NewLine );
 
                 IEdmPos5? FilePos = default;
                 FilePos = Folder.GetFirstFilePosition();
                 IEdmFile5? file = default;
 
                 // Instantiate the regular expression object to match file names
-                //Regex r = new Regex("^[A-Za-z][A-Za-z]-\\d\\d-[A-Za-z]\\d\\d\\d\\..*$");
+                Regex r = new Regex("^[A-Za-z][A-Za-z]-\\d\\d-[A-Za-z]\\d\\d\\d\\..*$");
+                List<string> newFiles = new List<string>();
 
                 while (!FilePos.IsNull)
                 {
                     file = Folder.GetNextFile(FilePos);
 
-                    //if (r.IsMatch(file.Name))
-                    //{
+                    if (r.IsMatch(file.Name))
+                    {
                         textBox1.AppendText("Reading File " + file.Name + Environment.NewLine);
-                        UpdateRow(sheet, columnNumbers, file);
-                    //}
+                        if (!UpdateRows(sheet, columnNumbers, file))
+                        {
+                            newFiles.Add(file.Name);
+                        }
+                    }
+                }
+
+                foreach (var fileName in newFiles)
+                {
+                    textBox1.AppendText("new file " + fileName + Environment.NewLine);
                 }
             }
         }
 
         /**
-         * update a row that matches a drawing file 
+         * update rows that match a drawing file 
          */
-        private void UpdateRow(ISheet sheet, ColumnNumbers columnNumbers, IEdmFile5 file)
+        private Boolean UpdateRows(ISheet sheet, ColumnNumbers columnNumbers, IEdmFile5 file)
         {
             foreach (IRow row in sheet)
             {
@@ -341,11 +352,13 @@ namespace EinhornExportIndex
                                 {
                                     textBox1.AppendText("No conversion for status " + status + Environment.NewLine);
                                 }
+
                             }
+
+                            return true;  // found it.
                         }
                     }
                 }
-
                 catch (System.Runtime.InteropServices.COMException ex)
                 {
                     textBox1.AppendText("HRESULT = 0x" + ex.ErrorCode.ToString("X") + ex.Message);
@@ -355,6 +368,8 @@ namespace EinhornExportIndex
                     textBox1.AppendText(ex.Message);
                 }
             }
+
+            return false; // Did not find
         }
 
         private Boolean LockFile(String path)
