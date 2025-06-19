@@ -43,7 +43,7 @@ The rules for the spreadsheet are:
             "RE-REVISE REV", "APPROVE"
             "PENDING EXWC REVIEW REV", "SMT EXWC"
 
-4) the spreadsheet name must match the project folder name, apart from the DWG INDEX (EINENG).xlsx part.
+4) the spreadsheet name must match the project folder name, apart from the DWG INDEX.xlsx part.
 
 */
 
@@ -154,7 +154,7 @@ namespace EinhornExportIndex
 
                 if (Folder != null)
                 {
-                    String Path = "C:\\" + Host + OutputFolder + Folder.Name + " DWG INDEX (EINENG).xlsx";
+                    String Path = "C:\\" + Host + OutputFolder + Folder.Name + " DWG INDEX.xlsx";
 
                     textBox1.AppendText("Workbook " + Path + Environment.NewLine);
 
@@ -260,7 +260,8 @@ namespace EinhornExportIndex
                 IEdmFile5? file = default;
 
                 // Instantiate the regular expression object to match file names
-                Regex r = new Regex("^[A-Za-z][A-Za-z]-\\d\\d-[A-Za-z]\\d\\d\\d\\..*$");
+                // File name should be 2 or 3 characters, a dash, two numbers, dash, then four characters or digits, then a dot.
+                Regex r = new Regex("^[A-Za-z]{2,3}-\\d\\d-[a-zA-Z_0-9][a-zA-Z_0-9][a-zA-Z_0-9][a-zA-Z_0-9]..*$");
                 List<string> newFiles = new List<string>();
 
                 while (!FilePos.IsNull)
@@ -270,6 +271,7 @@ namespace EinhornExportIndex
                     if (r.IsMatch(file.Name))
                     {
                         textBox1.AppendText("Reading File " + file.Name + Environment.NewLine);
+                        file.Refresh();
                         if (!UpdateRows(sheet, columnNumbers, file))
                         {
                             newFiles.Add(file.Name);
@@ -401,14 +403,16 @@ namespace EinhornExportIndex
                                         status = statusConversion["NULL"];
                                     }
 
-                                    textBox1.AppendText("Updating Status " + Environment.NewLine);
 
-                                    cell.SetCellValue(status);
                                 }
                                 catch (Exception)
                                 {
-                                    textBox1.AppendText("No conversion for status " + status + Environment.NewLine);
+                                    // no conversion available
+                                    status = statusConversion["NULL"];
                                 }
+
+                                textBox1.AppendText("Updating Status to: " + status + Environment.NewLine);
+                                cell.SetCellValue(status);
 
                             }
 
