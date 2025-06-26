@@ -1,8 +1,11 @@
 using EPDM.Interop.epdm;
 using NPOI.HPSF;
+using NPOI.HSSF.UserModel;
 using NPOI.SS.Formula.Functions;
 using NPOI.SS.UserModel;
+using NPOI.SS.Util;
 using NPOI.XSSF.UserModel;
+using System.IO;
 using System.Text.RegularExpressions;
 
 /**
@@ -160,7 +163,7 @@ namespace EinhornExportIndex
 
                     textBox1.AppendText("Locking " + Path + Environment.NewLine);
 
-                    LockFile(Path);
+                    //LockFile(Path);
 
                     IWorkbook workBook;
 
@@ -189,7 +192,7 @@ namespace EinhornExportIndex
 
                     textBox1.AppendText("Unlocking " + Path + Environment.NewLine);
 
-                    UnlockFile(Path);
+                    //UnlockFile(Path);
 
                     textBox1.AppendText(Environment.NewLine);
                     textBox1.AppendText("Done Processing" + Environment.NewLine);
@@ -262,7 +265,7 @@ namespace EinhornExportIndex
                 // Instantiate the regular expression object to match file names
                 // File name should be 2 or 3 characters, a dash, two numbers, dash, then four characters or digits, then a dot.
                 Regex r = new Regex("^[A-Za-z]{2,3}-\\d\\d-[a-zA-Z_0-9][a-zA-Z_0-9][a-zA-Z_0-9][a-zA-Z_0-9]..*$");
-                List<string> newFiles = new List<string>();
+                List<IEdmFile5> newFiles = new List<IEdmFile5>();
 
                 while (!FilePos.IsNull)
                 {
@@ -274,14 +277,12 @@ namespace EinhornExportIndex
                         file.Refresh();
                         if (!UpdateRows(sheet, columnNumbers, file))
                         {
-                            newFiles.Add(file.Name);
+                            newFiles.Add(file);
                         }
                     }
                 }
 
-                AddNewFiles(newFiles, sheet, columnNumbers);
-
-
+                AddNewFiles(newFiles, workBook, sheet, columnNumbers);
             }
         }
 
@@ -289,13 +290,20 @@ namespace EinhornExportIndex
         /**
          * add new files to this sheet
          */
-        private void AddNewFiles(List<string> newFiles, ISheet sheet, ColumnNumbers columnNumbers)
+        private void AddNewFiles(List<IEdmFile5> newFiles, IWorkbook workBook, ISheet sheet, ColumnNumbers columnNumbers)
         {
             textBox1.AppendText(Environment.NewLine);
 
-            foreach (var fileName in newFiles)
+            foreach (var file in newFiles)
             {
-                textBox1.AppendText("new file " + fileName + Environment.NewLine);
+                textBox1.AppendText("new file " + file.Name + Environment.NewLine);
+
+                //IRow sourceRow = sheet.GetRow(3);
+                //sheet.ShiftRows(3, sheet.LastRowNum, 1);
+                sheet.CopyRow(3,4);
+                sheet.GetRow(3).GetCell(1).SetCellValue(System.IO.Path.GetFileNameWithoutExtension(file.Name));
+                UpdateRows(sheet, columnNumbers, file);
+                
             }
         }
 
@@ -432,6 +440,7 @@ namespace EinhornExportIndex
 
             return false; // Did not find
         }
+
 
         private void UpdateColumns(ISheet sheet, IRow row, ColumnNumbers columnNumbers, IEdmFile5 file, string fileName)
         {
