@@ -1,11 +1,7 @@
 using EPDM.Interop.epdm;
-using NPOI.HPSF;
-using NPOI.HSSF.UserModel;
 using NPOI.SS.Formula.Functions;
 using NPOI.SS.UserModel;
-using NPOI.SS.Util;
 using NPOI.XSSF.UserModel;
-using System.IO;
 using System.Text.RegularExpressions;
 
 /**
@@ -54,6 +50,10 @@ namespace EinhornExportIndex
 {
     public partial class Form1 : Form
     {
+        const int TitleRow = 2; // this should be the row with all the column titles
+        const int FirstFileRow = 3; // this should be the first row with file info
+        const int LastFileRow = 94; // this should be the last row with posible file info
+
         //String Host = "Einhorn PDM";
         String Host = "TEST";
         String OutputFolder = "\\ENGINEERING DATA\\PDM INDEX OUTPUT\\";
@@ -64,7 +64,6 @@ namespace EinhornExportIndex
          */
         private struct ColumnNumbers
         {
-            const int TitleRow = 2; // this should be the row with all the column titles
             public void UpdateColumns(ISheet sheet)
             {
                 fileNameColumn = FindColumn(sheet, "Document #");
@@ -158,6 +157,7 @@ namespace EinhornExportIndex
                 if (Folder != null)
                 {
                     String Path = "C:\\" + Host + OutputFolder + Folder.Name + " DWG INDEX.xlsx";
+                    String NewPath = "C:\\" + Host + OutputFolder + "New " + Folder.Name + " DWG INDEX.xlsx";
 
                     textBox1.AppendText("Workbook " + Path + Environment.NewLine);
 
@@ -180,14 +180,14 @@ namespace EinhornExportIndex
                         textBox1.AppendText("Done Updating " + Path + Environment.NewLine);
                     }
 
-                    using (FileStream str = new FileStream(Path, FileMode.Create, FileAccess.Write))
+                    using (FileStream str = new FileStream(NewPath, FileMode.Create, FileAccess.Write))
                     {
-                        textBox1.AppendText("Writing " + Path + Environment.NewLine);
+                        textBox1.AppendText("Writing " + NewPath + Environment.NewLine);
 
                         workBook.Write(str);
                         str.Close();
 
-                        textBox1.AppendText("Done Writing " + Path + Environment.NewLine);
+                        textBox1.AppendText("Done Writing " + NewPath + Environment.NewLine);
                     }
 
                     textBox1.AppendText("Unlocking " + Path + Environment.NewLine);
@@ -298,13 +298,37 @@ namespace EinhornExportIndex
             {
                 textBox1.AppendText("new file " + file.Name + Environment.NewLine);
 
-                //IRow sourceRow = sheet.GetRow(3);
-                //sheet.ShiftRows(3, sheet.LastRowNum, 1);
-                sheet.CopyRow(3,4);
-                sheet.GetRow(3).GetCell(1).SetCellValue(System.IO.Path.GetFileNameWithoutExtension(file.Name));
-                UpdateRows(sheet, columnNumbers, file);
-                
+                int emptyRow = FindEmptyRow(sheet);
+
+                if (emptyRow == -1)
+                {
+                    textBox1.AppendText(Environment.NewLine);
+                    textBox1.AppendText("Please insert more empty rows manually" + Environment.NewLine);
+                    textBox1.AppendText(Environment.NewLine);
+                    break;
+                }
+
+                IRow row = sheet.GetRow(emptyRow);
+                row.GetCell(1).SetCellValue(System.IO.Path.GetFileNameWithoutExtension(file.Name));
+                UpdateRow(sheet, columnNumbers, row, file);
+                row.Hidden = false;
             }
+
+            XSSFFormulaEvaluator.EvaluateAllFormulaCells(workBook);
+        }
+
+        int FindEmptyRow(ISheet sheet)
+        {
+            for (int row = FirstFileRow; row <= LastFileRow; row++)
+            {
+                string fileName = sheet.GetRow(row).GetCell(1).StringCellValue;
+                if (fileName == "")
+                {
+                    return row;
+                }
+            }
+
+            return -1;
         }
 
 
@@ -328,101 +352,7 @@ namespace EinhornExportIndex
                         {
                             textBox1.AppendText("matched " + fileName + Environment.NewLine);
 
-                            IEdmEnumeratorVariable8 EnumVarObj;
-                            EnumVarObj = (IEdmEnumeratorVariable8)file.GetEnumeratorVariable();
-                            object VarObj;
-
-                            if (EnumVarObj.GetVar("Revision", "@", out VarObj) == true)
-                            {
-                                cell = columnNumbers.GetCell(row, columnNumbers.revisionColumn);
-                                if (cell != null)
-                                {
-                                    textBox1.AppendText("Updating Revision " + Environment.NewLine);
-
-                                    cell.SetCellValue(Convert.ToString(VarObj));
-                                }
-                            }
-
-                            if (EnumVarObj.GetVar("# Sheets", "@", out VarObj) == true)
-                            {
-                                cell = columnNumbers.GetCell(row, columnNumbers.numberOfSheetsColumn);
-                                if (cell != null)
-                                {
-                                    textBox1.AppendText("Updating # Sheets " + Environment.NewLine);
-
-                                    cell.SetCellValue(Convert.ToInt64(VarObj));
-                                }
-                            }
-
-                            if (EnumVarObj.GetVar("Description", "@", out VarObj) == true)
-                            {
-                                cell = columnNumbers.GetCell(row, columnNumbers.descriptionColumn);
-                                if (cell != null)
-                                {
-                                    textBox1.AppendText("Updating Description " + Environment.NewLine);
-
-                                    cell.SetCellValue(Convert.ToString(VarObj));
-                                }
-                            }
-
-                            if (EnumVarObj.GetVar("Drawn By", "@", out VarObj) == true)
-                            {
-                                cell = columnNumbers.GetCell(row, columnNumbers.drawnByColumn);
-                                if (cell != null)
-                                {
-                                    textBox1.AppendText("Updating Drawn By " + Environment.NewLine);
-
-                                    cell.SetCellValue(Convert.ToString(VarObj));
-                                }
-                            }
-
-                            if (EnumVarObj.GetVar("Resp Eng", "@", out VarObj) == true)
-                            {
-                                cell = columnNumbers.GetCell(row, columnNumbers.reviewerColumn);
-                                if (cell != null)
-                                {
-                                    textBox1.AppendText("Updating Resp Eng " + Environment.NewLine);
-
-                                    cell.SetCellValue(Convert.ToString(VarObj));
-                                }
-                            }
-
-                            if (EnumVarObj.GetVar("Approved By", "@", out VarObj) == true)
-                            {
-                                cell = columnNumbers.GetCell(row, columnNumbers.approverColumn);
-                                if (cell != null)
-                                {
-                                    textBox1.AppendText("Updating Approved By " + Environment.NewLine);
-
-                                    cell.SetCellValue(Convert.ToString(VarObj));
-                                }
-                            }
-
-                            // get the state and convert it
-                            cell = columnNumbers.GetCell(row, columnNumbers.stateColumn);
-                            if (cell != null)
-                            {
-                                String status = file.CurrentState.Name;
-                                try
-                                {
-                                    status = statusConversion[status];
-                                    if (status == null)
-                                    {
-                                        status = statusConversion["NULL"];
-                                    }
-
-
-                                }
-                                catch (Exception)
-                                {
-                                    // no conversion available
-                                    status = statusConversion["NULL"];
-                                }
-
-                                textBox1.AppendText("Updating Status to: " + status + Environment.NewLine);
-                                cell.SetCellValue(status);
-
-                            }
+                            UpdateRow(sheet, columnNumbers, row, file);
 
                             return true;  // found it.
                         }
@@ -441,6 +371,105 @@ namespace EinhornExportIndex
             return false; // Did not find
         }
 
+        private void UpdateRow(ISheet sheet, ColumnNumbers columnNumbers, IRow row, IEdmFile5 file)
+        {
+            IEdmEnumeratorVariable8 EnumVarObj;
+            EnumVarObj = (IEdmEnumeratorVariable8)file.GetEnumeratorVariable();
+            object VarObj;
+            ICell? cell;
+
+            if (EnumVarObj.GetVar("Revision", "@", out VarObj) == true)
+            {
+                cell = columnNumbers.GetCell(row, columnNumbers.revisionColumn);
+                if (cell != null)
+                {
+                    textBox1.AppendText("Updating Revision " + Environment.NewLine);
+
+                    cell.SetCellValue(Convert.ToString(VarObj));
+                }
+            }
+
+            if (EnumVarObj.GetVar("# Sheets", "@", out VarObj) == true)
+            {
+                cell = columnNumbers.GetCell(row, columnNumbers.numberOfSheetsColumn);
+                if (cell != null)
+                {
+                    textBox1.AppendText("Updating # Sheets " + Environment.NewLine);
+
+                    cell.SetCellValue(Convert.ToInt64(VarObj));
+                }
+            }
+
+            if (EnumVarObj.GetVar("Description", "@", out VarObj) == true)
+            {
+                cell = columnNumbers.GetCell(row, columnNumbers.descriptionColumn);
+                if (cell != null)
+                {
+                    textBox1.AppendText("Updating Description " + Environment.NewLine);
+
+                    cell.SetCellValue(Convert.ToString(VarObj));
+                }
+            }
+
+            if (EnumVarObj.GetVar("Drawn By", "@", out VarObj) == true)
+            {
+                cell = columnNumbers.GetCell(row, columnNumbers.drawnByColumn);
+                if (cell != null)
+                {
+                    textBox1.AppendText("Updating Drawn By " + Environment.NewLine);
+
+                    cell.SetCellValue(Convert.ToString(VarObj));
+                }
+            }
+
+            if (EnumVarObj.GetVar("Resp Eng", "@", out VarObj) == true)
+            {
+                cell = columnNumbers.GetCell(row, columnNumbers.reviewerColumn);
+                if (cell != null)
+                {
+                    textBox1.AppendText("Updating Resp Eng " + Environment.NewLine);
+
+                    cell.SetCellValue(Convert.ToString(VarObj));
+                }
+            }
+
+            if (EnumVarObj.GetVar("Approved By", "@", out VarObj) == true)
+            {
+                cell = columnNumbers.GetCell(row, columnNumbers.approverColumn);
+                if (cell != null)
+                {
+                    textBox1.AppendText("Updating Approved By " + Environment.NewLine);
+
+                    cell.SetCellValue(Convert.ToString(VarObj));
+                }
+            }
+
+            // get the state and convert it
+            cell = columnNumbers.GetCell(row, columnNumbers.stateColumn);
+            if (cell != null)
+            {
+                String status = file.CurrentState.Name;
+                try
+                {
+                    status = statusConversion[status];
+                    if (status == null)
+                    {
+                        status = statusConversion["NULL"];
+                    }
+
+
+                }
+                catch (Exception)
+                {
+                    // no conversion available
+                    status = statusConversion["NULL"];
+                }
+
+                textBox1.AppendText("Updating Status to: " + status + Environment.NewLine);
+                cell.SetCellValue(status);
+
+            }
+        }
 
         private void UpdateColumns(ISheet sheet, IRow row, ColumnNumbers columnNumbers, IEdmFile5 file, string fileName)
         {
