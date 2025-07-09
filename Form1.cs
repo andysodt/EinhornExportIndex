@@ -1,7 +1,7 @@
 using EPDM.Interop.epdm;
-using NPOI.SS.Formula.Functions;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
+using Org.BouncyCastle.Asn1.X509;
 using System.Text.RegularExpressions;
 
 /**
@@ -156,46 +156,27 @@ namespace EinhornExportIndex
 
                 if (Folder != null)
                 {
-                    String Path = "C:\\" + Host + OutputFolder + Folder.Name + " DWG INDEX.xlsx";
-                    String NewPath = "C:\\" + Host + OutputFolder + "New " + Folder.Name + " DWG INDEX.xlsx";
+                    String Path = GetWorkbookPath(Folder);
 
-                    textBox1.AppendText("Workbook " + Path + Environment.NewLine);
-
-                    textBox1.AppendText("Locking " + Path + Environment.NewLine);
-
-                    //LockFile(Path);
-
-                    IWorkbook workBook;
-
-                    using (FileStream str = new FileStream(Path, FileMode.Open, FileAccess.Read))
+                    if (File.Exists(Path))
                     {
-                        textBox1.AppendText("Updating " + Path + Environment.NewLine);
-
-                        workBook = new XSSFWorkbook(str);
-
-                        TraverseFolder(Folder, workBook);
-
-                        str.Close();
-
-                        textBox1.AppendText("Done Updating " + Path + Environment.NewLine);
+                        UpdateProject(Folder, Path);
                     }
-
-                    using (FileStream str = new FileStream(NewPath, FileMode.Create, FileAccess.Write))
+                    else
                     {
-                        textBox1.AppendText("Writing " + NewPath + Environment.NewLine);
-
-                        workBook.Write(str);
-                        str.Close();
-
-                        textBox1.AppendText("Done Writing " + NewPath + Environment.NewLine);
+                        IEdmPos5 FolderPos;
+                        FolderPos = Folder.GetFirstSubFolderPosition();
+                        while (!FolderPos.IsNull)
+                        {
+                            IEdmFolder5 SubFolder;
+                            SubFolder = Folder.GetNextSubFolder(FolderPos);
+                            Path = GetWorkbookPath(SubFolder);
+                            if (File.Exists(Path))
+                            {
+                                UpdateProject(Folder, Path);
+                            }
+                        }
                     }
-
-                    textBox1.AppendText("Unlocking " + Path + Environment.NewLine);
-
-                    //UnlockFile(Path);
-
-                    textBox1.AppendText(Environment.NewLine);
-                    textBox1.AppendText("Done Processing" + Environment.NewLine);
                 }
             }
             catch (System.Runtime.InteropServices.COMException ex)
@@ -206,13 +187,60 @@ namespace EinhornExportIndex
             {
                 textBox1.AppendText(ex.Message);
             }
+
+            textBox1.AppendText(Environment.NewLine + "Program Done");
+
         }
 
+        private string GetWorkbookPath(IEdmFolder5 Folder)
+        {
+            return "C:\\" + Host + OutputFolder + Folder.Name + " DWG INDEX.xlsx";
+        }
+
+        private void UpdateProject(IEdmFolder5 Folder, string Path)
+        {
+            textBox1.AppendText("Workbook " + Path + Environment.NewLine);
+
+            textBox1.AppendText("Locking " + Path + Environment.NewLine);
+
+            //LockFile(Path);
+
+            IWorkbook workBook;
+
+            using (FileStream str = new FileStream(Path, FileMode.Open, FileAccess.Read))
+            {
+                textBox1.AppendText("Updating " + Path + Environment.NewLine);
+
+                workBook = new XSSFWorkbook(str);
+
+                TraverseProject(Folder, workBook);
+
+                str.Close();
+
+                textBox1.AppendText("Done Updating " + Path + Environment.NewLine);
+            }
+
+            using (FileStream str = new FileStream(Path, FileMode.Create, FileAccess.Write))
+            {
+                textBox1.AppendText("Writing " + Path + Environment.NewLine);
+                workBook.Write(str);
+                str.Close();
+
+                textBox1.AppendText("Done Writing " + Path + Environment.NewLine);
+            }
+
+            textBox1.AppendText("Unlocking " + Path + Environment.NewLine);
+
+            //UnlockFile(Path);
+
+            textBox1.AppendText(Environment.NewLine);
+            textBox1.AppendText("Done Processing for " + Path + Environment.NewLine);
+        }
 
         /*
-         * Traverse all the subfolders in the chosen folder andupdate the matching worksheet in the workbook
+         * Traverse all the subfolders in the project folder and update the matching worksheet in the workbook
          */
-        private void TraverseFolder(IEdmFolder5 CurFolder, IWorkbook workBook)
+        private void TraverseProject(IEdmFolder5 CurFolder, IWorkbook workBook)
         {
             try
             {
@@ -228,9 +256,8 @@ namespace EinhornExportIndex
                 {
                     IEdmFolder5 SubFolder;
                     SubFolder = CurFolder.GetNextSubFolder(FolderPos);
-                    TraverseFolder(SubFolder, workBook);
+                    TraverseProject(SubFolder, workBook);
                 }
-
             }
             catch (System.Runtime.InteropServices.COMException ex)
             {
@@ -252,6 +279,8 @@ namespace EinhornExportIndex
 
             if (sheet != null)
             {
+                sheet.ForceFormulaRecalculation = true;
+
                 ColumnNumbers columnNumbers = new ColumnNumbers();
                 columnNumbers.UpdateColumns(sheet);
 
@@ -283,6 +312,7 @@ namespace EinhornExportIndex
                 }
 
                 AddNewFiles(newFiles, workBook, sheet, columnNumbers);
+
             }
         }
 
