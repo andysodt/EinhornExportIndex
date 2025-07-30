@@ -208,6 +208,7 @@ namespace EinhornExportIndex
             if (!LockFile(Path))
             {
                 // Skip this folder if the spreadsheet is already checked out.
+                textBox1.AppendText("Project " + Path + " has a spreadsheet that is checked out." + Environment.NewLine);
                 return;
             }
 
@@ -299,7 +300,7 @@ namespace EinhornExportIndex
 
                 // Instantiate the regular expression object to match file names
                 // File name should be 2 or 3 characters, a dash, two numbers, dash, then four characters or digits, then a dot.
-                Regex r = new Regex("^[A-Za-z]{2,3}-\\d\\d-[a-zA-Z_0-9][a-zA-Z_0-9][a-zA-Z_0-9][a-zA-Z_0-9]..*$");
+                Regex r = new Regex("^[A-Za-z]{2,3}-\\d\\d-[a-zA-Z_0-9][a-zA-Z_0-9][a-zA-Z_0-9][a-zA-Z_0-9].(SLDDRW|pptx|xlsx|docx|mcdx|dwg|dxf)$");
                 List<IEdmFile5> newFiles = new List<IEdmFile5>();
 
                 while (!FilePos.IsNull)
@@ -413,6 +414,14 @@ namespace EinhornExportIndex
             EnumVarObj = (IEdmEnumeratorVariable8)file.GetEnumeratorVariable();
             object VarObj;
             ICell? cell;
+            Boolean governmentProject = false;
+
+            // Government projects only have a two char prefix, like TX-25...
+            Regex r = new Regex("^[A-Za-z]{2}-\\d\\d-[a-zA-Z_0-9][a-zA-Z_0-9][a-zA-Z_0-9][a-zA-Z_0-9].(SLDDRW|pptx|xlsx|docx|mcdx|dwg|dxf)$");
+            if (r.IsMatch(file.Name))
+            {
+                governmentProject = true;
+            }
 
             if (EnumVarObj.GetVar("Revision", "@", out VarObj) == true)
             {
@@ -469,16 +478,41 @@ namespace EinhornExportIndex
                 }
             }
 
-            if (EnumVarObj.GetVar("Approved By", "@", out VarObj) == true)
+            if (governmentProject)
             {
                 cell = columnNumbers.GetCell(row, columnNumbers.approverColumn);
-                if (cell != null)
-                {
-                    textBox1.AppendText("Updating Approved By " + Environment.NewLine);
 
-                    cell.SetCellValue(Convert.ToString(VarObj));
+                if (EnumVarObj.GetVar("CONTR Approved By", "@", out VarObj) == true)
+                {
+                    if (cell != null)
+                    {
+                        textBox1.AppendText("Updating Approved By " + Environment.NewLine);
+
+                        cell.SetCellValue(Convert.ToString(VarObj));
+                    }
+                }
+                else
+                {
+                    if (cell != null)
+                    {
+                        cell.SetCellValue("");
+                    }
                 }
             }
+            else
+            {
+                if (EnumVarObj.GetVar("Approved By", "@", out VarObj) == true)
+                {
+                    cell = columnNumbers.GetCell(row, columnNumbers.approverColumn);
+                    if (cell != null)
+                    {
+                        textBox1.AppendText("Updating Approved By " + Environment.NewLine);
+
+                        cell.SetCellValue(Convert.ToString(VarObj));
+                    }
+                }
+            }
+
 
             // get the state and convert it
             cell = columnNumbers.GetCell(row, columnNumbers.stateColumn);
