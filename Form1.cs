@@ -2,6 +2,7 @@ using EPDM.Interop.epdm;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 using Org.BouncyCastle.Asn1.X509;
+using System.IO;
 using System.Text.RegularExpressions;
 
 /**
@@ -199,11 +200,16 @@ namespace EinhornExportIndex
 
         private void UpdateProject(IEdmFolder5 Folder, string Path)
         {
+
             textBox1.AppendText("Workbook " + Path + Environment.NewLine);
 
             textBox1.AppendText("Locking " + Path + Environment.NewLine);
 
-            //LockFile(Path);
+            if (!LockFile(Path))
+            {
+                // Skip this folder if the spreadsheet is already checked out.
+                return;
+            }
 
             IWorkbook workBook;
 
@@ -231,7 +237,7 @@ namespace EinhornExportIndex
 
             textBox1.AppendText("Unlocking " + Path + Environment.NewLine);
 
-            //UnlockFile(Path);
+            UnlockFile(Path);
 
             textBox1.AppendText(Environment.NewLine);
             textBox1.AppendText("Done Processing for " + Path + Environment.NewLine);
@@ -600,6 +606,8 @@ namespace EinhornExportIndex
 
             }
         }
+
+
         private Boolean LockFile(String path)
         {
             Boolean altered = false;
