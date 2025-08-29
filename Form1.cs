@@ -1,8 +1,6 @@
 using EPDM.Interop.epdm;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
-using Org.BouncyCastle.Asn1.X509;
-using System.IO;
 using System.Text.RegularExpressions;
 
 /**
@@ -55,8 +53,8 @@ namespace EinhornExportIndex
         const int FirstFileRow = 3; // this should be the first row with file info
         const int LastFileRow = 94; // this should be the last row with posible file info
 
-        //String Host = "Einhorn PDM";
-        String Host = "TEST";
+        String Host = "Einhorn PDM";
+        //String Host = "TEST";
         String OutputFolder = "\\ENGINEERING DATA\\PDM INDEX OUTPUT\\";
         Dictionary<string, string> statusConversion = new Dictionary<string, string>();
 
@@ -138,23 +136,46 @@ namespace EinhornExportIndex
             statusConversion.Add("APPROVE REV", "APPROVE");
             statusConversion.Add("RE-REVISE REV", "APPROVE");
             statusConversion.Add("PENDING EXWC REVIEW REV", "SMT EXWC");
+
         }
 
         void EinhornExportIndex_Load(System.Object sender, System.EventArgs e)
         {
+            // This will AutoRun the program on Einhorn PDM folder.  It will Exit after it is done.
+            AutoRun();
         }
+
+        private void AutoRun()
+        {
+            vault = new EdmVault5();
+
+            //Log into selected vault as the current user
+            vault.LoginAuto(Host, this.Handle.ToInt32());
+
+            IEdmFolder5 Folder = vault.GetFolderFromPath("C:\\Einhorn PDM");
+
+            ProcessFolder(Folder);
+
+            Application.Exit();
+        }
+
 
         private void EinhornExportIndex_Click(System.Object sender, System.EventArgs e)
         {
+            vault = new EdmVault5();
+
+            //Log into selected vault as the current user
+            vault.LoginAuto(Host, this.Handle.ToInt32());
+
+            IEdmFolder5 Folder = vault.BrowseForFolder(0, "Select folder to traverse");
+
+            ProcessFolder(Folder);
+        }
+
+        private void ProcessFolder(IEdmFolder5 Folder)
+        {
             try
             {
-                vault = new EdmVault5();
-
-                //Log into selected vault as the current user
-                vault.LoginAuto(Host, this.Handle.ToInt32());
-
-                IEdmFolder5 Folder = vault.BrowseForFolder(0, "Select folder to traverse");
-
                 if (Folder != null)
                 {
                     String Path = GetWorkbookPath(Folder);
@@ -190,9 +211,7 @@ namespace EinhornExportIndex
             }
 
             textBox1.AppendText(Environment.NewLine + "Program Done");
-
         }
-
         private string GetWorkbookPath(IEdmFolder5 Folder)
         {
             return "C:\\" + Host + OutputFolder + Folder.Name + " DWG INDEX.xlsx";
